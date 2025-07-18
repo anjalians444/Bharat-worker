@@ -72,6 +72,14 @@ class _HomePageState extends State<HomePage> {
       );
     });
   }
+  @override
+  void initState() {
+    super.initState();
+    // Future.delayed(Duration.zero,(){
+    //   final profileProvider = Provider.of<ProfileProvider>(context);
+    //   profileProvider.getProfileData();
+    // });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,14 +101,16 @@ class _HomePageState extends State<HomePage> {
                     Stack(
                       children: [
                         CircleAvatar(
-                          radius:27,
+                          radius:23,
                           backgroundColor: MyColors.appTheme,
                           child: Padding(
                             padding: const EdgeInsets.all(2.0),
                             child: CircleAvatar(
-                              radius: 26,
+                              radius: 23,
                               backgroundColor: Colors.white,
-                              child: Icon(Icons.person, color: Colors.grey[400], size: 30),
+                              child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(500),
+                                  child: Image.network(profileProvider.profileImageUrl.toString())),
                             ),
                           ),
                         ),
@@ -128,12 +138,12 @@ class _HomePageState extends State<HomePage> {
                           Row(
                             children: [
                               Text(
-                                "Hi, Akshay!",
-                                style: mediumTextStyle(fontSize: 20.0, color: MyColors.darkText),
+                                "Hi, ${profileProvider.name.split(" ").first}!",
+                                style: mediumTextStyle(fontSize: 18.0, color: MyColors.darkText),
                               ),
                               Text(
                                 "👋",
-                                style: TextStyle(fontSize: 20.0),
+                                style: TextStyle(fontSize: 18.0),
                               ),
                             ],
                           ),
@@ -142,7 +152,7 @@ class _HomePageState extends State<HomePage> {
                             children: [
                               Text(
                                 "Jaipur, Rajasthan",
-                                style: regularTextStyle(fontSize: 13.0, color:MyColors.darkText),
+                                style: regularTextStyle(fontSize: 12.0, color:MyColors.darkText),
                               ),
                               Icon(Icons.arrow_drop_down_rounded, color:MyColors.darkText,size: 16,),
                             ],
@@ -160,13 +170,13 @@ class _HomePageState extends State<HomePage> {
                           children: [
                             Text(
                               "BRONZE",
-                              style: mediumTextStyle(fontSize: 14.0, color: MyColors.appTheme),
+                              style: mediumTextStyle(fontSize: 13.0, color: MyColors.appTheme),
                             ),
 
                             SizedBox(height: 2,),
                             Text(
                               "100 POINTS",
-                              style: mediumTextStyle(fontSize: 12.0, color:MyColors.color7A849C),
+                              style: mediumTextStyle(fontSize: 11.0, color:MyColors.color7A849C),
                             ),
                           ],
                         ),
@@ -345,7 +355,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                               hsized2,
                               Text(
-                                "Your profile has complete 70%",
+                                "Your profile has complete ${profileProvider.partner!.profileCompletion??0}%",
                                 style: regularTextStyle(fontSize: 14.0, color: MyColors.color838383),
                               ),
                             ],

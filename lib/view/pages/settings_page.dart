@@ -3,6 +3,7 @@ import 'package:bharat_worker/constants/my_colors.dart';
 import 'package:bharat_worker/constants/sized_box.dart';
 import 'package:bharat_worker/helper/common.dart';
 import 'package:bharat_worker/provider/language_provider.dart';
+import 'package:bharat_worker/provider/profile_provider.dart';
 import 'package:bharat_worker/widgets/common_success_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../constants/assets_paths.dart';
 import '../../helper/router.dart';
 import 'profile_details_page.dart';
+import 'package:bharat_worker/provider/auth_provider.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -18,6 +20,8 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
+    final profileProvider = Provider.of<ProfileProvider>(context);
+  //  profileProvider.getProfileData();
     final List<_SettingsItem> settingsItems = [
       _SettingsItem(
         icon:MyAssetsPaths.money,
@@ -61,6 +65,7 @@ class SettingsPage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: commonAppBar((){},
           languageProvider.translate('settings'),
+          isLeading: false,
       actions: [
         InkWell(
           onTap: (){
@@ -87,7 +92,7 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 35,
-                    backgroundImage: NetworkImage('https://randomuser.me/api/portraits/men/3.jpg'), // Replace with user image if available
+                    backgroundImage: NetworkImage(profileProvider.userProfileImage.toString()), // Replace with user image if available
                     backgroundColor: Colors.grey[200],
                   ),
                   const SizedBox(width: 16),
@@ -96,12 +101,12 @@ class SettingsPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          languageProvider.translate('profile_name'),
+                          profileProvider.name??"",
                           style: boldTextStyle(fontSize: 20.0, color: MyColors.blackColor),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '+91 987 654 3210', // Replace with user phone if available
+                          profileProvider.phone??"",
                           style: regularNormalTextStyle(fontSize: 13.0, color: MyColors.color7D7D7D),
                         ),
                         const SizedBox(height: 7),
@@ -119,7 +124,7 @@ class SettingsPage extends StatelessWidget {
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
-                                  languageProvider.translate('profile_completion').replaceFirst('%s', '70%'),
+                                  languageProvider.translate('profile_completion').replaceFirst('%s', '${  profileProvider.partner != null ?profileProvider.partner!.profileCompletion:0}%'),
                                   style: mediumTextStyle(fontSize: 12.0, color: Colors.white),
                                 ),
                                 SizedBox(width: 3,),
@@ -179,14 +184,16 @@ class SettingsPage extends StatelessWidget {
                       title: 'Logout Confirmation',
                       subtitle: 'Are you sure you want to logout from your account?',
                       buttonText: 'Logout',
-                      onButtonTap: () {
-                        // TODO: Add your logout logic here
+                        secondaryHeight:5.0,
+                      onButtonTap: () async {
+                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                        await authProvider.logout(context);
                         Navigator.of(context).pop();
+                        context.go(AppRouter.loginSignUp);
                       },
                       secondaryButtonText: 'Cancel',
                       secondaryColor: MyColors.colorEBEBEB,
                       secondaryBorderColor: MyColors.colorEBEBEB,
-                      secondaryHeight: 0.0,
                       onSecondaryButtonTap: () {
                         Navigator.of(context).pop();
                       },

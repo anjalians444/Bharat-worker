@@ -59,17 +59,17 @@ class CommonSuccessDialog extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Text(
                 subtitle,
                 style: regularTextStyle(fontSize: 14.0, color: MyColors.lightText),
                 textAlign: TextAlign.center,
               ),
               if (extraContent != null) ...[
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 extraContent!,
               ],
-              const SizedBox(height: 32),
+              const SizedBox(height: 30),
               if (!isCancel) ...[
                 CommonButton(
                   text: buttonText,

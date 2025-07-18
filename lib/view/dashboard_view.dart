@@ -54,7 +54,7 @@ class _DashboardViewState extends State<DashboardView> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: MyColors.appTheme,
+          selectedItemColor: MyColors.blackColor,
           unselectedItemColor: Colors.grey,
           selectedLabelStyle: mediumTextStyle(fontSize: 12.0, color: MyColors.appTheme),
           unselectedLabelStyle: mediumTextStyle(fontSize: 12.0, color: Colors.grey),

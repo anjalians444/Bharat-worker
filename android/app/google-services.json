@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "238904276518",
+    "project_id": "bharat-worker-ff0c4",
+    "storage_bucket": "bharat-worker-ff0c4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238904276518:android:7ea76e2e360e958d1718e7",
+        "android_client_info": {
+          "package_name": "com.alina.bharat_worker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzH53Nqcs0NtZUF5FKVTLsKIZGOvSkLpM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

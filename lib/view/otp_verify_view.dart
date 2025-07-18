@@ -20,7 +20,7 @@ class OtpVerifyView extends StatefulWidget {
 class _OtpVerifyViewState extends State<OtpVerifyView> {
   late List<FocusNode> _focusNodes;
   late List<TextEditingController> _controllers;
-  int _timerSeconds = 75;
+  int _timerSeconds = 60;
   String? _otpError;
   late final Ticker _ticker;
 
@@ -72,31 +72,27 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
     });
   }
 
-  void _verifyOtp(authProvider,languageProvider) async {
+  Future<void> _verifyOtp(AuthProvider authProvider, LanguageProvider languageProvider) async {
     setState(() {
       _otpError = null;
     });
-    if (_otp.length < 4 ) {
+    if (_otp.length < 6) {
       setState(() {
         _otpError = languageProvider.translate('wrong_otp');
       });
       return;
     }
-    final error = await authProvider.verifyOtp(_otp);
-    if (error != null) {
+    final success = await authProvider.verifyOtp(context,_otp);
+    if (!success) {
       setState(() {
-        _otpError = languageProvider.translate('wrong_otp');
+        _otpError = authProvider.firebaseErrorMsg ?? languageProvider.translate('wrong_otp');
       });
     } else {
-      // Navigate to TellUsAboutView
-      if (mounted) {
-        context.push(AppRouter.tellUsAbout);
-      }
     }
   }
 
-  void _resendOtp(authProvider) {
-    authProvider.resendOtp();
+  void _resendOtp(AuthProvider authProvider) async {
+    await authProvider.resendOtp();
     for (final c in _controllers) {
       c.clear();
     }
@@ -133,7 +129,7 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
               const SizedBox(height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(4, (idx) {
+                children: List.generate(6, (idx) {
                   return Expanded(
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: 5),
@@ -172,12 +168,18 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0, left: 4.0),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.error_outline, color: Colors.red, size: 18),
                       const SizedBox(width: 4),
-                      Text(languageProvider.translate('wrong_otp'), style: TextStyle(color: Colors.red, fontSize: 14)),
+                      Expanded(child: Text(_otpError!, style: TextStyle(color: Colors.red, fontSize: 12))),
                     ],
                   ),
+                ),
+              if (authProvider.isVerifyingOtp || authProvider.isLoading)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
               hsized40,
               Align(

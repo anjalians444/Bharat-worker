@@ -1,3 +1,4 @@
+import 'package:bharat_worker/widgets/place_picker_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:bharat_worker/provider/work_address_provider.dart';
 import 'package:bharat_worker/provider/language_provider.dart';
@@ -32,7 +33,32 @@ class CommonAddressForm extends StatelessWidget {
               CommonTextField(
                 controller: workAddressProvider.addressController,
                 hintText: languageProvider.translate('enter_address'),
-                suffixIcon: const Icon(Icons.my_location),
+                suffixIcon:  Icon(Icons.fmd_good_outlined,color: MyColors.darkText.withOpacity(0.5),),
+                readOnly: true,
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PlacePickerScreen(),
+                    ),
+                  );
+                  if (result != null) {
+                    workAddressProvider.addressController.text = result['address'] ?? '';
+                    workAddressProvider.countryController.text = result['country'] ?? '';
+                    workAddressProvider.stateController.text = result['state'] ?? '';
+                    workAddressProvider.cityController.text = result['city'] ?? '';
+                    workAddressProvider.pinCodeController.text = result['pincode'] ?? '';
+                    print("result['latitude']..${result['latitude']}");
+                    print("result['longitude']..${result['longitude']}");
+                    if (result['latitude'] != null) {
+                      workAddressProvider.latitude = double.tryParse(result['latitude'].toString());
+                    }
+                    if (result['longitude'] != null) {
+                      workAddressProvider.longitude = double.tryParse(result['longitude'].toString());
+                    }
+                  }
+                },
+                errorText: workAddressProvider.addressError,
               ),
               const SizedBox(height: 20),
               Row(
@@ -47,6 +73,7 @@ class CommonAddressForm extends StatelessWidget {
                           controller: workAddressProvider.countryController,
                           hintText: "",
                           readOnly: true,
+                          errorText: workAddressProvider.countryError,
                         ),
                       ],
                     ),
@@ -62,6 +89,7 @@ class CommonAddressForm extends StatelessWidget {
                           controller: workAddressProvider.stateController,
                           hintText: languageProvider.translate('select_state'),
                           suffixIcon: const Icon(Icons.arrow_drop_down),
+                          errorText: workAddressProvider.stateError,
                         ),
                       ],
                     ),
@@ -80,6 +108,7 @@ class CommonAddressForm extends StatelessWidget {
                         CommonTextField(
                           controller: workAddressProvider.cityController,
                           hintText: languageProvider.translate('enter_city'),
+                          errorText: workAddressProvider.cityError,
                         ),
                       ],
                     ),
@@ -95,6 +124,7 @@ class CommonAddressForm extends StatelessWidget {
                           controller: workAddressProvider.pinCodeController,
                           hintText: languageProvider.translate('enter_pin'),
                           keyboardType: TextInputType.number,
+                          errorText: workAddressProvider.pinCodeError,
                         ),
                       ],
                     ),
@@ -140,6 +170,14 @@ class CommonAddressForm extends StatelessWidget {
           SizedBox(width: 20,)
           ],
         ),
+        if (workAddressProvider.distanceError != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 2, bottom: 8),
+            child: Text(
+              workAddressProvider.distanceError!,
+              style: TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
       ],
     );
   }

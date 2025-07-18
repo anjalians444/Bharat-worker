@@ -11,7 +11,7 @@ final Map<String, Map<String, String>> translations = {
     "onboarding_title_4": "Grow, Learn & Get Certified",
     "onboarding_desc_4": "Access training, get verified, and unlock higher-paying jobs with performance-based rewards.",
     "next": "Next",
-    "get_started": "Set Started",
+    "get_started": "Get Started",
     "lets_you_in": "Let's you in",
     "continue_with_google": "Continue with Google",
     "continue_with_facebook": "Continue with Facebook",
@@ -58,6 +58,8 @@ final Map<String, Map<String, String>> translations = {
     "others": "Others",
     "enter_other_service": "Enter other service",
     "where_do_you_work": "Where Do You Work?",
+    "verify_your_identity": "Verify Your Identity",
+    "upload_your_id": "Upload your ID and certificates to get verified faster.",
     "choose_areas_to_accept_jobs": "Choose the areas where you can accept jobs.",
     "address": "Address",
     "enter_address": "Enter Address",
@@ -189,6 +191,8 @@ final Map<String, Map<String, String>> translations = {
     "description": "Description",
     "schedule": "Schedule",
     "navigation_map_title": "Map",
+    "aadhar_card": "Aadhar card",
+    "pan_card": "PAN Card"
   },
   'zh_CN': {
     "app_name": "Bharat Worker",

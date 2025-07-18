@@ -143,14 +143,14 @@ class JobMatchCard extends StatelessWidget {
                     children: [
                       Text(
                         timeAgo,
-                        style: regularTextStyle(fontSize: 12.0, color: MyColors.color838383),
+                        style: regularTextStyle(fontSize: 11.0, color: MyColors.color838383),
                       ),
                       Container(
-                        margin: EdgeInsets.symmetric(horizontal: 6),
+                        margin: EdgeInsets.symmetric(horizontal:5),
                         height: 14,width:2,decoration: BoxDecoration(color: MyColors.borderColor),),
                       Text(
                         applicants,
-                        style: mediumTextStyle(fontSize: 12.0, color: MyColors.appTheme),
+                        style: mediumTextStyle(fontSize: 11.0, color: MyColors.appTheme),
                       ),
                       if(isStatus == true)...[
                         Container(
@@ -159,7 +159,7 @@ class JobMatchCard extends StatelessWidget {
 
                         Text(
                           price,
-                          style: boldTextStyle(fontSize: 12.0, color: MyColors.appTheme),
+                          style: boldTextStyle(fontSize: 11.0, color: MyColors.appTheme),
                         ),
                       ],
 
@@ -178,7 +178,7 @@ class JobMatchCard extends StatelessWidget {
                 if(isStatus == true )...[
                   if (badgeText != null && badgeColor != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal:8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal:5, vertical: 4),
                       decoration: BoxDecoration(
                         color: badgeColor,
                         borderRadius: BorderRadius.circular(12),
@@ -188,10 +188,10 @@ class JobMatchCard extends StatelessWidget {
                         children: [
                           Text(
                             badgeText!,
-                            style: semiBoldTextStyle(fontSize: 12.0, color: MyColors.whiteColor),
+                            style: semiBoldTextStyle(fontSize: 11.0, color: MyColors.whiteColor),
                           ),
                           if(status == "On the Way"  ||  status == "Paused")
-                          Icon(Icons.arrow_drop_down,color: Colors.white,size:24,)
+                          Icon(Icons.arrow_drop_down,color: Colors.white,size:23,)
                         ],
                       ),
                     ),

@@ -7,6 +7,7 @@ import 'package:bharat_worker/helper/router.dart';
 import 'package:bharat_worker/provider/language_provider.dart';
 import 'package:bharat_worker/provider/profile_provider.dart';
 import 'package:bharat_worker/provider/quiz_provider.dart';
+import 'package:bharat_worker/provider/category_provider.dart';
 import 'package:bharat_worker/widgets/common_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -21,6 +22,7 @@ class ProfileDetailsPage extends StatelessWidget {
     final languageProvider = Provider.of<LanguageProvider>(context);
     final profileProvider = Provider.of<ProfileProvider>(context);
     final quizProvider = Provider.of<QuizProvider>(context);
+    final categoryProvider = Provider.of<CategoryProvider>(context);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: commonAppBar((){
@@ -246,16 +248,24 @@ class ProfileDetailsPage extends StatelessWidget {
                   children: [
                     Text(languageProvider.translate('service_categories'), style: mediumTextStyle(fontSize: 14.0, color: MyColors.blackColor)),
                     hsized8,
+                    categoryProvider.categories.isEmpty?
+                        SizedBox.shrink():
                     Wrap(
                       spacing: 12,
-                      children: profileProvider.serviceCategories.map((cat) => Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check, color: MyColors.appTheme, size: 18),
-                          const SizedBox(width: 4),
-                          Text(cat, style:regularTextStyle(fontSize: 14.0, color: MyColors.color7A849C)),
-                        ],
-                      )).toList(),
+                      children: profileProvider.serviceCategories.map((catId) {
+                        final category = categoryProvider.categories.firstWhere(
+                          (c) => c.id == catId,
+                        );
+                        final catName = category != null ? category.name : catId;
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check, color: MyColors.appTheme, size: 18),
+                            const SizedBox(width: 4),
+                            Text(catName, style:regularTextStyle(fontSize: 14.0, color: MyColors.color7A849C)),
+                          ],
+                        );
+                      }).toList(),
                     ),
                     hsized16,
                     Divider(color: MyColors.color7A849C,thickness:0.5,),
@@ -307,6 +317,7 @@ class ProfileDetailsPage extends StatelessWidget {
                   ],
                 ),
               ),
+              hsized100,
               hsized50,
 
             ],

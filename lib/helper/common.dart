@@ -1,10 +1,11 @@
 import 'package:bharat_worker/constants/font_style.dart';
 import 'package:bharat_worker/constants/my_colors.dart';
+import 'package:bharat_worker/provider/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:flutter_svg/flutter_svg.dart';
 
-commonAppBar(GestureTapCallback onTap, String title, {List<Widget>? actions,Color bg = Colors.white}) {
+commonAppBar(GestureTapCallback onTap, String title, {List<Widget>? actions,Color bg = Colors.white,bool isLeading = true}) {
   return PreferredSize(
     preferredSize: const Size.fromHeight(54),
     child: Container(
@@ -12,23 +13,23 @@ commonAppBar(GestureTapCallback onTap, String title, {List<Widget>? actions,Colo
       margin: EdgeInsets.symmetric(horizontal: 20),
       child: AppBar(
         surfaceTintColor: Colors.transparent,
-        leadingWidth: 44,
-        leading: InkWell(
+        leadingWidth:isLeading? 44:0,
+        leading: isLeading? InkWell(
           child: Container(
               decoration: BoxDecoration(
                   color: Colors.white,
                   border: Border.all(color: MyColors.borderColor),
                   borderRadius: BorderRadius.circular(12)
               ),
-              padding: EdgeInsets.all(10),
+              padding: EdgeInsets.all(8),
               child: const Icon(Icons.arrow_back,size: 24,)),
           onTap: () {
             onTap();
           },
-        ),
+        ):null,
         title:  Text(title, style: semiBoldTextStyle(fontSize: 20.0,color: MyColors.blackColor)),
         actions: actions,
-        centerTitle: true,
+        centerTitle: isLeading?true:false,
         elevation: 0,
         backgroundColor: bg,
         foregroundColor: Colors.black,
@@ -71,6 +72,7 @@ Widget commonProfileImageSection({
   required File? imageFile,
   required VoidCallback onPickImage,
   String? errorText,
+   required ProfileProvider profileProvider
 }) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +86,12 @@ Widget commonProfileImageSection({
               backgroundColor: Colors.grey[300],
               backgroundImage: imageFile != null ? FileImage(imageFile) : null,
               child: imageFile == null
-                  ? Icon(Icons.person, size: 60, color: Colors.white)
+                  ?
+              profileProvider.profileImageUrl.isNotEmpty?
+                  ClipRRect(
+                      borderRadius: BorderRadius.circular(500),
+                      child: Image.network(profileProvider.profileImageUrl)):
+              Icon(Icons.person, size: 60, color: Colors.white)
                   : null,
             ),
             Positioned(

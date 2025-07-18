@@ -3,6 +3,7 @@ import 'package:bharat_worker/constants/font_style.dart';
 import 'package:bharat_worker/constants/my_colors.dart';
 import 'package:bharat_worker/constants/sized_box.dart';
 import 'package:bharat_worker/helper/common.dart';
+import 'package:bharat_worker/helper/router.dart';
 import 'package:bharat_worker/provider/language_provider.dart';
 import 'package:bharat_worker/provider/auth_provider.dart';
 import 'package:bharat_worker/widgets/common_button.dart';
@@ -124,23 +125,40 @@ class _LoginViewState extends State<LoginView> {
                 ],
               ),
               const SizedBox(height: 24),
-              CommonButton(
-                text: languageProvider.translate('log_in'),
-                onTap: () async {
-                  final error = authProvider.validatePhone(authProvider.phoneController.text.trim());
-                  authProvider.setPhoneError(error);
-                  if (error == null) {
-                    await authProvider.loginWithPhone(context);
-                    if (authProvider.phoneError == null) {
-                      context.push('/otp-verify');
+              Consumer<AuthProvider>(builder: (context,provider,_){
+                if (provider.isLoading) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                return  CommonButton(
+                  text: languageProvider.translate('log_in'),
+                  onTap: () async {
+                    final error = provider.validatePhone(provider.phoneController.text.trim());
+                    provider.setPhoneError(error);
+                    if (error == null) {
+                      await provider.loginWithPhone(context).then((onValue){
+                      //   if (provider.verificationId != null ) {
+                      //
+                      //   } else if (provider.firebaseErrorMsg != null) {
+                      //     ScaffoldMessenger.of(context).showSnackBar(
+                      //       SnackBar(content: Text(provider.firebaseErrorMsg!)),
+                      //     );
+                      //   }
+                       });
+
                     }
-                  }
-                },
-                backgroundColor: MyColors.appTheme,
-                textColor: Colors.white,
-                width: double.infinity,
-                margin: EdgeInsets.all(0),
-              ),
+                  },
+                  backgroundColor: MyColors.appTheme,
+                  textColor: Colors.white,
+                  width: double.infinity,
+                  margin: EdgeInsets.all(0),
+                  isDisabled: provider.isLoading,
+                );
+              }),
               hsized28,
               Row(
                 children: [
@@ -184,13 +202,33 @@ class _LoginViewState extends State<LoginView> {
                   ),
                 ],
               ),
+
+              hsized16,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    languageProvider.translate('dont_have_account'),
+                    style: regularTextStyle(fontSize: 14.0, color: Colors.grey[600]),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      authProvider.setLogin(authProvider.isLoginView == true?false:true);
+                    },
+                    child: Text(
+                      languageProvider.translate(authProvider.isLoginView == true?'sign_up':'log_in'),
+                      style: boldTextStyle(fontSize: 14.0, color: MyColors.appTheme),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 32),
 
             ],
           ),
         ),
       ),
-      bottomSheet:  Container(
+     /* bottomSheet:  Container(
         padding: EdgeInsets.only(bottom: 20),
         color: Colors.white,
         child: Row(
@@ -211,7 +249,7 @@ class _LoginViewState extends State<LoginView> {
             ),
           ],
         ),
-      ),
+      ),*/
     );
   }
 }

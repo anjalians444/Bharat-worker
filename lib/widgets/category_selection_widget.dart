@@ -53,16 +53,16 @@ class CategorySelectionWidget extends StatelessWidget {
         hsized25,
         ResponsiveGridRow(
             children:
-                List.generate(categoryProvider.categories.length, (int index) {
-          final cat = categoryProvider.categories[index];
-          final isSelected = categoryProvider.selectedIndexes.contains(index);
+                List.generate(categoryProvider.filteredCategories.length, (int index) {
+          final cat = categoryProvider.filteredCategories[index];
+          final isSelected = categoryProvider.selectedCategoryIds.contains(cat.id);
           return ResponsiveGridCol(
             xs: 4,
             md: 3,
             child: GestureDetector(
-              onTap: () => categoryProvider.toggleCategory(index),
+              onTap: () => categoryProvider.toggleCategorySelection(cat.id),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15.0),
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -77,15 +77,20 @@ class CategorySelectionWidget extends StatelessWidget {
                           width: 2,
                         ),
                       ),
-                      padding: const EdgeInsets.all(20),
-                      child: Image.asset(cat["icon"].toString(),
-                          color: MyColors.appTheme, width: 32, height: 32),
+                      padding: const EdgeInsets.all(14),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: Image.network(cat.image,
+                            width: 35, height: 35, errorBuilder: (context, error, stackTrace) => Icon(Icons.image, color: MyColors.appTheme)),
+                      ),
                     ),
                     hsized16,
                     Text(
-                      languageProvider.translate(cat["key"]),
+                      cat.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: semiBoldTextStyle(
-                          fontSize: 16.0, color: MyColors.darkText),
+                          fontSize: 11.0, color: MyColors.darkText),
                       textAlign: TextAlign.center,
                     ),
                   ],

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:bharat_worker/widgets/common_loader.dart';
 
 class LoginSignUpView extends StatelessWidget {
   const LoginSignUpView({Key? key}) : super(key: key);
@@ -21,54 +22,81 @@ class LoginSignUpView extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-          //  mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              hsized50,
-              hsized50,
-
-
-              SvgPicture.asset(
-                MyAssetsPaths.logo,
-                width: 100,
-                height: 100,
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: SingleChildScrollView(
+                child: Column(
+                //  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    hsized50,
+                    hsized50,
+                
+                
+                    SvgPicture.asset(
+                      MyAssetsPaths.logo,
+                      width: 100,
+                      height: 100,
+                    ),
+                   hsized8,
+                    Text(
+                      languageProvider.translate('lets_you_in'),
+                      style: boldTextStyle(fontSize:40.0, color: MyColors.blackColor),
+                    ),
+                    const SizedBox(height: 32),
+                    _SocialButton(
+                      icon: MyAssetsPaths.google,
+                      text: languageProvider.translate('continue_with_google'),
+                      onTap: () => authProvider.loginWithGoogle(context),
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 16),
+                    _SocialButton(
+                      icon: MyAssetsPaths.facebook,
+                      text: languageProvider.translate('continue_with_facebook'),
+                      onTap: () => authProvider.loginWithFacebook(context),
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 16),
+                    _SocialButton(
+                      icon: MyAssetsPaths.phone,
+                      text: languageProvider.translate('continue_with_number'),
+                      onTap: () => context.push(AppRouter.login),
+                      color: MyColors.appTheme,
+                      textColor: Colors.white,
+                    ),
+                    hsized16,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          languageProvider.translate('already_have_account'),
+                          style: regularTextStyle(fontSize: 14.0, color: Colors.grey[600]),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            authProvider.setLogin(true);
+                            context.push(AppRouter.login);
+                          },
+                          child: Text(
+                            languageProvider.translate('log_in'),
+                            style: boldTextStyle(fontSize: 14.0, color: MyColors.appTheme),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-             hsized8,
-              Text(
-                languageProvider.translate('lets_you_in'),
-                style: boldTextStyle(fontSize:40.0, color: MyColors.blackColor),
-              ),
-              const SizedBox(height: 32),
-              _SocialButton(
-                icon: MyAssetsPaths.google,
-                text: languageProvider.translate('continue_with_google'),
-                onTap: () => authProvider.loginWithGoogle(context),
-                color: Colors.white,
-              ),
-              const SizedBox(height: 16),
-              _SocialButton(
-                icon: MyAssetsPaths.facebook,
-                text: languageProvider.translate('continue_with_facebook'),
-                onTap: () => authProvider.loginWithFacebook(context),
-                color: Colors.white,
-              ),
-              const SizedBox(height: 16),
-              _SocialButton(
-                icon: MyAssetsPaths.phone,
-                text: languageProvider.translate('continue_with_number'),
-                onTap: () => context.push(AppRouter.login),
-                color: MyColors.appTheme,
-                textColor: Colors.white,
-              ),
-              const SizedBox(height: 32),
-
-            ],
-          ),
+            ),
+            if (authProvider.isLoading)
+              const CommonLoader(),
+          ],
         ),
       ),
-      bottomSheet:    Container(
+     /* bottomSheet:    Container(
         padding: EdgeInsets.only(bottom: 20),
         color: Colors.white,
         child: Row(
@@ -90,7 +118,7 @@ class LoginSignUpView extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      ),*/
     );
   }
 }

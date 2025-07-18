@@ -18,6 +18,7 @@ class ProfileFormSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+   // profileProvider.getProfileData();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -25,6 +26,7 @@ class ProfileFormSection extends StatelessWidget {
           imageFile: profileProvider.profileImage,
           onPickImage: profileProvider.pickImage,
           errorText: profileProvider.imageError,
+          profileProvider: profileProvider
         ),
         hsized30,
         commonSectionHeading(languageProvider.translate('full_name')),
@@ -61,6 +63,7 @@ class ProfileFormSection extends StatelessWidget {
         hsized8,
         commonTextFieldSection(
           textField: CommonTextField(
+            isEnable: false,
             controller: profileProvider.mobileController,
             hintText: '+91 000 000 0000',
             keyboardType: TextInputType.phone,

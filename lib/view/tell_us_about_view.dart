@@ -1,17 +1,13 @@
 import 'package:bharat_worker/constants/font_style.dart';
 import 'package:bharat_worker/constants/my_colors.dart';
 import 'package:bharat_worker/constants/sized_box.dart';
+import 'package:bharat_worker/models/profile_model.dart';
+import 'package:bharat_worker/services/user_prefences.dart';
 import 'package:bharat_worker/widgets/common_button.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:bharat_worker/provider/auth_provider.dart';
 import 'package:bharat_worker/helper/common.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
 import 'package:bharat_worker/provider/language_provider.dart';
-import 'package:bharat_worker/helper/router.dart';
-import 'package:bharat_worker/widgets/common_text_field.dart';
 import 'package:bharat_worker/provider/profile_provider.dart';
 import 'package:bharat_worker/widgets/profile_form_section.dart';
 
@@ -29,17 +25,29 @@ class _TellUsAboutViewState extends State<TellUsAboutView> {
     super.dispose();
   }
 
-  void _onNext(ProfileProvider profileProvider) {
+  void _onNext(ProfileProvider profileProvider) async {
     if (!profileProvider.validate()) {
       return;
     }
-    context.push(AppRouter.allCategory);
+
+    var response = await profileProvider.updateProfile(context).then((onValue){
+     // context.push(AppRouter.allCategory);
+    });
+    // Navigator.of(context).pop(); // Remove loading
+    // if (response['success'] == true) {
+    //   context.push(AppRouter.allCategory);
+    // } else {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //      SnackBar(content: Text('${response['message']}')),
+    //   );
+   // }
   }
 
   @override
   Widget build(BuildContext context) {
     final profileProvider = Provider.of<ProfileProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
+      profileProvider.getProfileData();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: commonAppBar(() {

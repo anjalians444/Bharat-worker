@@ -20,7 +20,9 @@ class CommonTextField extends StatelessWidget {
   final int? maxLines;
   final int? minLines;
   final TextStyle? style;
+  final bool isEnable;
 final  Function(String value)? onChanged;
+  final String? errorText;
   const CommonTextField({
     Key? key,
     required this.controller,
@@ -41,11 +43,14 @@ final  Function(String value)? onChanged;
     this.minLines,
     this.style,
     this.onChanged,
+    this.isEnable = true,
+    this.errorText,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      enabled: isEnable,
       controller: controller,
       keyboardType: keyboardType,
       readOnly: readOnly,
@@ -77,6 +82,7 @@ final  Function(String value)? onChanged;
         contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         suffixIcon: suffixIcon,
         prefixIcon: prefixIcon,
+        errorText: errorText,
       ),
     );
   }

@@ -13,6 +13,7 @@ class CommonButton extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final double? borderRadius;
   final double? width;
+  final bool isDisabled;
 
   const CommonButton({
     Key? key,
@@ -26,6 +27,7 @@ class CommonButton extends StatelessWidget {
     this.margin,
     this.borderRadius,
     this.width,
+    this.isDisabled = false,
   }) : super(key: key);
 
   @override
@@ -33,22 +35,26 @@ class CommonButton extends StatelessWidget {
     return Padding(
       padding: margin ?? const EdgeInsets.only(left: 16.0,right: 16,bottom: 16),
       child: InkWell(
-        onTap: onTap,
+        onTap: isDisabled ? null : onTap,
         borderRadius: BorderRadius.circular(borderRadius ?? 100),
         child: Container(
           width: width ?? double.infinity,
           decoration: BoxDecoration(
-            color: backgroundColor ?? MyColors.appTheme,
+            color: isDisabled
+                ? Colors.grey[300]
+                : backgroundColor ?? MyColors.appTheme,
             border: Border.all(color: borderColor??Colors.transparent),
             borderRadius: BorderRadius.circular(borderRadius ?? 100)
           ),
-          padding: padding ?? const EdgeInsets.symmetric(vertical: 13.5),
+          padding: padding ?? const EdgeInsets.symmetric(vertical: 10),
           alignment: Alignment.center,
           child: Text(
             text,
             style: boldTextStyle(
               fontSize: fontSize ?? 16.0,
-              color: textColor ?? Colors.white
+              color: isDisabled
+                  ? Colors.grey[500]
+                  : textColor ?? Colors.white
             ),
           ),
         ),

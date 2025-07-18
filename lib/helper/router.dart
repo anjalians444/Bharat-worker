@@ -1,15 +1,20 @@
 import 'package:bharat_worker/models/job_model.dart';
 import 'package:bharat_worker/view/add_money_view.dart';
+import 'package:bharat_worker/view/category_view/experience_view.dart';
 import 'package:bharat_worker/view/my_payment_view.dart';
 import 'package:bharat_worker/view/onboarding_view.dart';
 import 'package:bharat_worker/view/pages/saved_job_view.dart';
+import 'package:bharat_worker/view/pages/upload_file_view.dart';
 import 'package:bharat_worker/view/splash_view.dart';
 import 'package:bharat_worker/view/languages_selection_view.dart';
 import 'package:bharat_worker/view/login_signup_view.dart';
 import 'package:bharat_worker/view/login_view.dart';
 import 'package:bharat_worker/view/otp_verify_view.dart';
+import 'package:bharat_worker/view/category_view/sub_category_view.dart';
+import 'package:bharat_worker/view/subscription_plan_view.dart';
 import 'package:bharat_worker/view/tell_us_about_view.dart';
-import 'package:bharat_worker/view/all_category_view.dart';
+import 'package:bharat_worker/view/category_view/all_category_view.dart';
+import 'package:bharat_worker/view/widgets/document_upload_section.dart';
 import 'package:bharat_worker/view/work_address_view.dart';
 import 'package:bharat_worker/view/dashboard_view.dart';
 import 'package:bharat_worker/view/job_detail_view.dart';
@@ -37,6 +42,9 @@ class AppRouter {
   static const String otpVerify = '/otp-verify';
   static const String tellUsAbout = '/tell-us-about';
   static const String allCategory = '/all-category';
+  static const String subCategory = '/sub-category';
+  static const String experience = '/experience-view';
+  static const String subscriptionPlanView = '/subscription-plan-view';
   static const String workAddress = '/work-address';
   static const String dashboard = '/dashboard';
   static const String jobDetail = '/job-detail';
@@ -45,6 +53,7 @@ class AppRouter {
   static const String notificationDetail = '/notification-detail';
   static const String profileDetails = '/profile-details';
   static const String editProfile = '/edit-profile';
+  static const String documentUploadSection = '/document-upload-Section';
   static const String trainingCertification = '/training-certification';
   static const String quiz = '/quiz';
   static const String chat = '/chat';
@@ -130,19 +139,98 @@ class AppRouter {
 
       GoRoute(
         path: allCategory,
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AllCategoryView(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            );
-          },
-        ),
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, List<String>>?;
+  final bool isEdit = extra?['isEdit'] as bool? ?? false;
+  return CustomTransitionPage(
+  key: state.pageKey,
+  child:  AllCategoryView(isEdit: isEdit),
+  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(1, 0),
+        end: Offset.zero,
+      ).animate(animation),
+      child: child,
+    );
+  },
+  );
+  }
+      ),
+
+   GoRoute(
+        path: subCategory,
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final selectedCategoryIds = (extra?['selectedCategoryIds'] as List<String>?) ?? [];
+          final isEdit = extra?['isEdit'] as bool? ?? false;
+         // final extra = state.extra as Map<String, List<String>>?;
+          // final selectedCategoryIdss = extra?['selectedCategoryIds'] ?? [];
+          // // final selectedSubCategoryIds = extra?['selectedSubCategoryIds'] ?? [];
+          // final bool isEdit = extra?['isEdit'] as bool;
+
+          // final selectedCategoryIds = (state.extra as List<String>?) ?? [];
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: SubCategoryView(selectedCategoryIds: selectedCategoryIds, isEdit:isEdit),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+
+    GoRoute(
+        path: experience,
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final selectedCategoryIds = (extra?['selectedCategoryIds'] as List<String>?) ?? [];
+          final selectedSubCategoryIds = (extra?['selectedSubCategoryIds'] as List<String>?) ?? [];
+          final isEdit = extra?['isEdit'] as bool? ?? false;
+          // final extra = state.extra as Map<String, List<String>>?;
+          // final selectedCategoryIds = extra?['selectedCategoryIds'] ?? [];
+          // final selectedSubCategoryIds = extra?['selectedSubCategoryIds'] ?? [];
+          // final bool isEdit = extra?['isEdit'] as bool? ?? false;
+
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: ExperienceView(selectedCategoryIds: selectedCategoryIds,selectedSubCategoryIds:selectedSubCategoryIds, isEdit: isEdit,),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+    GoRoute(
+        path: subscriptionPlanView,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: SubscriptionPlanView(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
       ),
 
       GoRoute(
@@ -351,6 +439,22 @@ class AppRouter {
           },
         ),
       ),
+ GoRoute(
+        path: documentUploadSection,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const UploadFileView(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            );
+          },
+        ),
+      ),
 
       GoRoute(
         path: trainingCertification,
@@ -400,7 +504,7 @@ class AppRouter {
             customerAddress: (state.extra as Map<String, dynamic>)['customerAddress'] ?? '',
             customerAvatarUrl: (state.extra as Map<String, dynamic>)['customerAvatarUrl'] ?? '',
             jobType: (state.extra as Map<String, dynamic>)['jobType'] ?? '',
-            jobDateTime: (state.extra as Map<String, dynamic>)['jobDateTime'] ?? '',
+            jobDateTime: (state.extra as Map<String, dynamic>)['jobDateTime'] ?? '', receiverId: (state.extra as Map<String, dynamic>)['receiverId'] ?? '',
           ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return SlideTransition(

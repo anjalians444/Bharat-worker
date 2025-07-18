@@ -7,6 +7,7 @@ import 'package:bharat_worker/helper/router.dart';
 import 'package:bharat_worker/provider/language_provider.dart';
 import 'package:bharat_worker/provider/work_address_provider.dart';
 import 'package:bharat_worker/widgets/common_button.dart';
+import 'package:bharat_worker/widgets/common_loader.dart';
 import 'package:bharat_worker/widgets/common_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -23,13 +24,29 @@ class WorkAddressView extends StatelessWidget {
     final languageProvider = Provider.of<LanguageProvider>(context);
     final workAddressProvider = Provider.of<WorkAddressProvider>(context);
 
+    // Show/hide loader dialog based on isLoading
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (workAddressProvider.isLoading) {
+        if (ModalRoute.of(context)?.isCurrent ?? true) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const CommonLoaderDialog(),
+          );
+        }
+      } else {
+        if (Navigator.canPop(context)) {
+          Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst || !route.isCurrent);
+        }
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: commonAppBar(() {
         Navigator.of(context).pop();
       }, ""),
       body: SingleChildScrollView(
-
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -43,7 +60,6 @@ class WorkAddressView extends StatelessWidget {
                     languageProvider.translate('where_do_you_work'),
                     style: boldTextStyle(fontSize: 24.0, color: MyColors.blackColor),
                   ),
-
                   const SizedBox(height: 10),
                   Text(
                     languageProvider.translate('choose_areas_to_accept_jobs'),
@@ -52,7 +68,6 @@ class WorkAddressView extends StatelessWidget {
                 ],
               ),
             ),
-
             CommonAddressForm(
               workAddressProvider: workAddressProvider,
               languageProvider: languageProvider,
@@ -67,22 +82,30 @@ class WorkAddressView extends StatelessWidget {
             color: Colors.white,
             padding: const EdgeInsets.only(bottom:20.0),
             child: CommonButton(
-              text: languageProvider.translate('save_and_continue'),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => CommonSuccessDialog(
-                    image:SvgPicture.asset(MyAssetsPaths.certified,height: 132,width: 132,),
-                    title: "You're Now a Certified Partner!",
-                    subtitle: "You can now access more job requests and earn trust faster.",
-                    buttonText: "Go to Dashboard",
-                    onButtonTap: () {
-                      Navigator.of(context).pop();
-                      context.go(AppRouter.dashboard);
-                    },
-                  ),
-                );
+              text: languageProvider.translate('next'),
+              onTap: workAddressProvider.isLoading ? (){} : () async {
+                final success = await workAddressProvider.workLocationUpdate(context);
+
+                /*if (success) {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => CommonSuccessDialog(
+                      image:SvgPicture.asset(MyAssetsPaths.certified,height: 132,width: 132,),
+                      title: "You're Now a Certified Partner!",
+                      subtitle: "You can now access more job requests and earn trust faster.",
+                      buttonText: "Go to Dashboard",
+                      onButtonTap: () {
+                        Navigator.of(context).pop();
+                        context.go(AppRouter.dashboard);
+                      },
+                    ),
+                  );
+                } else if (workAddressProvider.apiError != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(workAddressProvider.apiError!)),
+                  );
+                }*/
               },
               margin: const EdgeInsets.all(16),
             ),
