@@ -33,7 +33,7 @@ class ProfileData {
   factory ProfileData.fromJson(Map<String, dynamic> json) {
     return ProfileData(
       token: json['token'],
-      jwtToken: json['jwtToken'],
+      jwtToken: json['jwtToken']?.toString(),
       user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
       partner: json['partner'] != null ? PartnerModel.fromJson(json['partner']) : null,
     );
@@ -55,6 +55,8 @@ class UserModel {
   final String? phone;
   final bool? isActive;
   final int? v;
+  final String? uid;
+  final String? joinVia;
 
   UserModel({
     this.id,
@@ -64,6 +66,8 @@ class UserModel {
     this.phone,
     this.isActive,
     this.v,
+    this.uid,
+    this.joinVia,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -75,6 +79,8 @@ class UserModel {
       phone: json['phone'],
       isActive: json['isActive'],
       v: json['__v'],
+      uid: json['uid'],
+      joinVia: json['joinVia'],
     );
   }
 
@@ -86,6 +92,46 @@ class UserModel {
     'phone': phone,
     'isActive': isActive,
     '__v': v,
+    'uid': uid,
+    'joinVia': joinVia,
+  };
+}
+
+class CategoryItem {
+  final String? id;
+  final String? name;
+
+  CategoryItem({this.id, this.name});
+
+  factory CategoryItem.fromJson(Map<String, dynamic> json) {
+    return CategoryItem(
+      id: json['_id'],
+      name: json['name'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    '_id': id,
+    'name': name,
+  };
+}
+
+class ReferredByModel {
+  final String? id;
+  final String? name;
+
+  ReferredByModel({this.id, this.name});
+
+  factory ReferredByModel.fromJson(Map<String, dynamic> json) {
+    return ReferredByModel(
+      id: json['_id'],
+      name: json['name'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    '_id': id,
+    'name': name,
   };
 }
 
@@ -109,6 +155,8 @@ class PartnerModel {
   final List<dynamic>? bookingHistory;
   final List<dynamic>? paymentHistory;
   final List<dynamic>? complaints;
+  final List<String>? subscriptionPlans;
+  final List<dynamic>? referralHistory;
   final String? aadharFront;
   final String? aadharBack;
   final String? aadharNo;
@@ -119,13 +167,19 @@ class PartnerModel {
   final List<dynamic>? performanceScore;
   final String? profile;
   final int? serviceAreaDistance;
-  final List<String>? category;
-  final List<String>? subCategory;
-  final List<String>? categoryType;
+  final List<CategoryItem>? category;
+  final List<CategoryItem>? services;
+  final List<CategoryItem>? categoryType;
   final List<SkillModel>? skills;
   final int? v;
-  final String? referredBy;
+  final ReferredByModel? referredBy;
   final String? referralCode;
+  final int? referralPoints;
+  final int? totalExperience;
+  final bool? waitingForApproval;
+  final bool? isSubscriptionPlaneActive;
+  final String? activeSubscriptionPlan;
+  final String? subscriptionExpiresAt;
 
   PartnerModel({
     this.id,
@@ -147,6 +201,8 @@ class PartnerModel {
     this.bookingHistory,
     this.paymentHistory,
     this.complaints,
+    this.subscriptionPlans,
+    this.referralHistory,
     this.aadharFront,
     this.aadharBack,
     this.aadharNo,
@@ -158,12 +214,18 @@ class PartnerModel {
     this.profile,
     this.serviceAreaDistance,
     this.category,
-    this.subCategory,
+    this.services,
     this.categoryType,
     this.skills,
     this.v,
     this.referredBy,
     this.referralCode,
+    this.referralPoints,
+    this.totalExperience,
+    this.waitingForApproval,
+    this.isSubscriptionPlaneActive,
+    this.activeSubscriptionPlan,
+    this.subscriptionExpiresAt,
   });
 
   factory PartnerModel.fromJson(Map<String, dynamic> json) {
@@ -187,6 +249,8 @@ class PartnerModel {
       bookingHistory: json['bookingHistory'] ?? [],
       paymentHistory: json['paymentHistory'] ?? [],
       complaints: json['complaints'] ?? [],
+      subscriptionPlans: (json['subscriptionPlans'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      referralHistory: json['referralHistory'] ?? [],
       aadharFront: json['aadharFront'],
       aadharBack: json['aadharBack'],
       aadharNo: json['aadharNo'],
@@ -197,13 +261,19 @@ class PartnerModel {
       performanceScore: json['performanceScore'] ?? [],
       profile: json['profile'],
       serviceAreaDistance: json['serviceAreaDistance'] is int ? json['serviceAreaDistance'] : int.tryParse(json['serviceAreaDistance'].toString()),
-      category: (json['category'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      subCategory: (json['subCategory'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      categoryType: (json['categoryType'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      category: (json['category'] as List?)?.map((e) => CategoryItem.fromJson(e)).toList() ?? [],
+      services: (json['services'] as List?)?.map((e) => CategoryItem.fromJson(e)).toList() ?? [],
+      categoryType: (json['categoryType'] as List?)?.map((e) => CategoryItem.fromJson(e)).toList() ?? [],
       skills: (json['skills'] as List?)?.map((e) => SkillModel.fromJson(e)).toList() ?? [],
       v: json['__v'],
-      referredBy: json['referredBy'],
+      referredBy: json['referredBy'] != null ? ReferredByModel.fromJson(json['referredBy']) : null,
       referralCode: json['referralCode'],
+      referralPoints: json['referralPoints'] is int ? json['referralPoints'] : int.tryParse(json['referralPoints'].toString()),
+      totalExperience: json['totalExperience'],
+      waitingForApproval: json['waitingForApproval'],
+      isSubscriptionPlaneActive: json['isSubscriptionPlaneActive'],
+      activeSubscriptionPlan: json['activeSubscriptionPlan'],
+      subscriptionExpiresAt: json['subscriptionExpiresAt'],
     );
   }
 
@@ -227,6 +297,8 @@ class PartnerModel {
     'bookingHistory': bookingHistory,
     'paymentHistory': paymentHistory,
     'complaints': complaints,
+    'subscriptionPlans': subscriptionPlans,
+    'referralHistory': referralHistory,
     'aadharFront': aadharFront,
     'aadharBack': aadharBack,
     'aadharNo': aadharNo,
@@ -237,27 +309,35 @@ class PartnerModel {
     'performanceScore': performanceScore,
     'profile': profile,
     'serviceAreaDistance': serviceAreaDistance,
-    'category': category,
-    'subCategory': subCategory,
-    'categoryType': categoryType,
+    'category': category?.map((e) => e.toJson()).toList(),
+    'services': services?.map((e) => e.toJson()).toList(),
+    'categoryType': categoryType?.map((e) => e.toJson()).toList(),
     'skills': skills?.map((e) => e.toJson()).toList(),
     '__v': v,
-    'referredBy': referredBy,
+    'referredBy': referredBy?.toJson(),
     'referralCode': referralCode,
+    'referralPoints': referralPoints,
+    'totalExperience': totalExperience,
+    'waitingForApproval': waitingForApproval,
+    'isSubscriptionPlaneActive': isSubscriptionPlaneActive,
+    'activeSubscriptionPlan': activeSubscriptionPlan,
+    'subscriptionExpiresAt': subscriptionExpiresAt,
   };
 }
 
 class SkillModel {
   final String? id;
+  final String? serviceId;
   final String? skill;
   final int? yearOfExprence;
   final String? experienceCertificates;
 
-  SkillModel({this.id, this.skill, this.yearOfExprence, this.experienceCertificates});
+  SkillModel({this.id, this.serviceId, this.skill, this.yearOfExprence, this.experienceCertificates});
 
   factory SkillModel.fromJson(Map<String, dynamic> json) {
     return SkillModel(
       id: json['_id'],
+      serviceId: json['serviceId'],
       skill: json['skill'],
       yearOfExprence: json['yearOfExprence'] is int ? json['yearOfExprence'] : int.tryParse(json['yearOfExprence'].toString()),
       experienceCertificates: json['experienceCertificates'],
@@ -266,6 +346,7 @@ class SkillModel {
 
   Map<String, dynamic> toJson() => {
     '_id': id,
+    'serviceId': serviceId,
     'skill': skill,
     'yearOfExprence': yearOfExprence,
     'experienceCertificates': experienceCertificates,

@@ -1,7 +1,7 @@
 // Updated BookingPage with new UI layout matching the reference image
-import 'package:bharat_worker/constants/assets_paths.dart';
-import 'package:bharat_worker/models/job_model.dart';
-import 'package:bharat_worker/view/widgets/job_match.dart';
+import 'package:bharat_worker/models/booking_job_model.dart';
+
+import 'package:bharat_worker/view/widgets/booking_job_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +11,7 @@ import '../../constants/sized_box.dart';
 import '../../helper/common.dart';
 import '../../helper/router.dart';
 import '../../provider/language_provider.dart';
-import '../../widgets/common_job_card.dart';
+import '../../provider/booking_jobs_provider.dart';
 
 class BookingPage extends StatefulWidget {
   const BookingPage({Key? key}) : super(key: key);
@@ -20,148 +20,77 @@ class BookingPage extends StatefulWidget {
   State<BookingPage> createState() => _BookingPageState();
 }
 
-class _BookingPageState extends State<BookingPage> with SingleTickerProviderStateMixin {
+class _BookingPageState extends State<BookingPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final List<ScrollController> _scrollControllers =
+      List.generate(4, (_) => ScrollController());
+  int? _selectedJobIndex;
+  int _selectedTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+
+    // Listen to tab changes
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() {
+          _selectedTabIndex = _tabController.index;
+        });
+      }
+    });
+
+    // Fetch booking jobs for all tabs
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final bookingJobsProvider =
+          Provider.of<BookingJobsProvider>(context, listen: false);
+      // Only fetch if we don't have data already
+      // if (bookingJobsProvider.bookingJobs.isEmpty) {
+      bookingJobsProvider.fetchBookingJobs();
+      // }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    // Dispose scroll controllers
+    // for (var controller in _scrollControllers) {
+    //   controller.dispose();
+    // }
     super.dispose();
   }
 
-  // Sample job data for demonstration
-  // Move jobs list to state
-
-  final List<JobModel> _jobs = [
-    JobModel(
-      icon: MyAssetsPaths.ac,
-      title:'Tap Repair in Kitchen',
-      location:  'Dhakoli, Sector 5',
-      date: 'Tomorrow',
-      time: '9:30 AM – 10:30 AM',
-      distance: '6 km',
-      desc: 'Kitchen tap leaking; bring washer and tools.',
-      timeAgo: '2 hours ago',
-      applicants: '8 Applicants',
-      price: '₹850',
-      bookmarked: false,
-      status: 'Accepted',
-      badge: 'Accepted',
-      badgeColor: MyColors.color1056BD,
-    ),
-    JobModel(
-      icon: MyAssetsPaths.ac,
-      title:'Drain Blockage Fix',
-      location: 'VIP Road, Zirakpur',
-      date:'Today',
-      time: '9:30 AM – 10:30 AM',
-      distance: '6 km',
-      desc: 'Bathroom drain blocked; may need pipe cleaning tool.',
-      timeAgo: '2 hours ago',
-      applicants: '8 Applicants',
-      price: '₹850',
-      bookmarked: false,
-      status: 'Cancelled',
-      badge: 'Cancelled',
-      badgeColor: MyColors.redColor,
-    ), JobModel(
-      icon: MyAssetsPaths.ac,
-      title: '1.5 Ton Split AC',
-      location:  'Sector 21, Panchkula',
-      date: 'Tomorrow',
-      time: '9:30 AM – 10:30 AM',
-      distance: '6 km',
-      desc: '1-ton window AC, seasonal cleaning.',
-      timeAgo: '2 hours ago',
-      applicants: '8 Applicants',
-      price: '₹850',
-      bookmarked: false,
-      status: 'Paused',
-      badge: 'Paused',
-      badgeColor: MyColors.colorFFCA15,
-    ),
-    JobModel(
-      icon: MyAssetsPaths.beauty,
-      title: 'Tap Repair in Kitchen',
-      location:  'VIP Road, Zirakpur',
-      date: 'Tomorrow',
-      time: '9:30 AM – 10:30 AM',
-      distance: '6 km',
-      desc: 'Kitchen tap leaking; bring washer and tools.',
-      timeAgo: '2 hours ago',
-      applicants: '8 Applicants',
-      price: '₹850',
-      bookmarked: false,
-      status: 'On the Way',
-      badge: 'On the Way',
-      badgeColor: MyColors.colorOrange,
-    ),
- /*   {
-      'title': 'Tap Repair in Kitchen',
-      'location': 'VIP Road, Zirakpur',
-      'date': 'Tomorrow',
-      'time': '9:30 AM – 10:30 AM',
-      'distance': '6 km',
-      'status': 'Accepted',
-      'description': 'Kitchen tap leaking; bring washer and tools.',
-      'applicants': '8',
-      'price': '₹1150',
-      'badge': 'Accepted',
-      'badgeColor': MyColors.greenColor,
-    },
-    {
-      'title': 'Drain Blockage Fix',
-      'location': 'Dhakoli, Sector 5',
-      'date': 'Today',
-      'time': '3:00 PM – 4:00 PM',
-      'distance': '6 km',
-      'status': 'Cancelled',
-      'description': 'Bathroom drain blocked; may need pipe cleaning tool.',
-      'applicants': '8',
-      'price': '₹1150',
-      'badge': 'Cancelled',
-      'badgeColor': MyColors.redColor,
-    },
-    {
-      'title': '1.5 Ton Split AC',
-      'location': 'Sector 21, Panchkula',
-      'date': 'Today',
-      'time': '6:00 PM – 7:00 PM',
-      'distance': '6 km',
-      'status': 'Paused',
-      'description': '1-ton window AC, seasonal cleaning.',
-      'applicants': '8',
-      'price': '₹1150',
-      'badge': 'Paused',
-      'badgeColor': Colors.orange,
-    },*/
-  ];
+  void _refreshData() {
+    final bookingJobsProvider =
+        Provider.of<BookingJobsProvider>(context, listen: false);
+    // Refresh data silently in background without showing loader
+    bookingJobsProvider.fetchBookingJobsSilently();
+  }
 
   @override
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
 
+    // Scroll to selected job when returning from detail page
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: commonAppBar(
-            () => Navigator.pop(context),
+        () => Navigator.pop(context),
         'Booking',
+        isLeading: false,
         actions: [
           InkWell(
             child: Container(
                 decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(color: MyColors.borderColor),
-                    borderRadius: BorderRadius.circular(12)
-                ),
+                    borderRadius: BorderRadius.circular(12)),
                 padding: EdgeInsets.all(10),
                 child: Icon(Icons.bookmark_border, color: Colors.black)),
             onTap: () {
@@ -174,13 +103,13 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
         children: [
           TabBar(
             controller: _tabController,
-           // isScrollable: true,
+            // isScrollable: true,
             labelColor: MyColors.appTheme,
             padding: EdgeInsets.symmetric(horizontal: 5),
             labelPadding: EdgeInsets.symmetric(horizontal: 2),
             unselectedLabelColor: Colors.grey,
             indicatorColor: MyColors.appTheme,
-            indicatorWeight:2.0 ,
+            indicatorWeight: 2.0,
             dividerColor: MyColors.borderColor,
             tabs: const [
               Tab(text: 'Upcoming'),
@@ -206,8 +135,10 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
                       controller: _searchController,
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        hintText: languageProvider.translate('search_service_hint'),
-                        hintStyle: regularTextStyle(fontSize: 14.0, color: Colors.grey),
+                        hintText:
+                            languageProvider.translate('search_service_hint'),
+                        hintStyle: regularTextStyle(
+                            fontSize: 14.0, color: Colors.grey),
                       ),
                     ),
                   ),
@@ -219,10 +150,22 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
             child: TabBarView(
               controller: _tabController,
               children: [
-                _JobList(jobs: _jobs, onJobTap: _onJobTap),
-                _RunningJobList(jobs: _jobs, onJobTap: _onJobTap),
-                _JobList(jobs: _jobs, onJobTap: _onJobTap),
-                _JobList(jobs: _jobs, onJobTap: _onJobTap),
+                _BookingJobsList(
+                  onJobTap: _onJobTap,
+                  scrollController: _scrollControllers[0],
+                ),
+                _BookingJobsList(
+                  onJobTap: _onJobTap,
+                  scrollController: _scrollControllers[1],
+                ),
+                _BookingJobsList(
+                  onJobTap: _onJobTap,
+                  scrollController: _scrollControllers[2],
+                ),
+                _BookingJobsList(
+                  onJobTap: _onJobTap,
+                  scrollController: _scrollControllers[3],
+                ),
               ],
             ),
           ),
@@ -231,120 +174,121 @@ class _BookingPageState extends State<BookingPage> with SingleTickerProviderStat
     );
   }
 
-  void _onJobTap(JobModel job) {
-    context.push(AppRouter.jobDetail, extra: job);
+  void _onJobTap(BookingJob job) {
+    // Store the selected job index for this tab
+    // final bookingJobsProvider =
+    //     Provider.of<BookingJobsProvider>(context, listen: false);
+    //
+    // print("Job tapped: ${job.title} with ID: ${job.id}");
+    // print("Current tab index: ${_tabController.index}");
+    // print("Total jobs in list: ${bookingJobsProvider.bookingJobs.length}");
+    //
+    // // Debug: Print all job IDs in the list
+    // for (int i = 0; i < bookingJobsProvider.bookingJobs.length; i++) {
+    //   print(
+    //       "Job $i: ${bookingJobsProvider.bookingJobs[i].title} - ID: ${bookingJobsProvider.bookingJobs[i].id}");
+    // }
+    //
+    // final jobIndex = bookingJobsProvider.bookingJobs.indexWhere((j) => j.id == job.id);
+    // print("Found job at index: $jobIndex");
+    //
+    // if (jobIndex != -1) {
+    //   setState(() {
+    //     _selectedJobIndex = jobIndex;
+    //     _selectedTabIndex = _tabController.index;
+    //   });
+    //   print(
+    //       "Stored selected job index: $_selectedJobIndex for tab: $_selectedTabIndex");
+    // } else {
+    //   print("Job not found in list! Trying alternative search...");
+    //   // Try alternative search methods
+    //   final altIndex1 = bookingJobsProvider.bookingJobs
+    //       .indexWhere((j) => j.title == job.title);
+    //   final altIndex2 = bookingJobsProvider.bookingJobs
+    //       .indexWhere((j) => j.id.toString() == job.id.toString());
+    //   print("Alternative search 1 (by title): $altIndex1");
+    //   print("Alternative search 2 (by ID string): $altIndex2");
+    //
+    //   // Use alternative search if primary failed
+    //   final finalIndex =
+    //       altIndex1 != -1 ? altIndex1 : (altIndex2 != -1 ? altIndex2 : -1);
+    //   if (finalIndex != -1) {
+    //     setState(() {
+    //       _selectedJobIndex = finalIndex;
+    //       _selectedTabIndex = _tabController.index;
+    //     });
+    //     print("Used alternative search, stored index: $_selectedJobIndex");
+    //   }
+    // }
+
+    // Navigate to job detail and refresh data when returning
+    context.push(AppRouter.jobDetail, extra: job).then((_) {
+      // Refresh data when returning from job detail page
+      _refreshData();
+    });
   }
 }
 
-class _JobList extends StatelessWidget {
-  final List<JobModel> jobs;
-  final Function(JobModel) onJobTap;
+class _BookingJobsList extends StatelessWidget {
+  final Function(BookingJob) onJobTap;
+  final ScrollController? scrollController;
 
-  const _JobList({Key? key, required this.jobs, required this.onJobTap}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    if (jobs.isEmpty) {
-      return const Center(child: Text('No jobs found'));
-    }
-    return ListView.builder(
-      itemCount: jobs.length,
-      padding: const EdgeInsets.only(left: 16,right: 16,top:0),
-      itemBuilder: (context, index) {
-        final job = jobs[index];
-        return JobMatchCard(
-          iconPath: job.icon,
-          title: job.title,
-          location: job.location,
-          date: job.date,
-          time: job.time,
-          distance: job.distance,
-          desc: job.desc,
-          timeAgo: job.timeAgo,
-          applicants: job.applicants,
-          price: job.price,
-          bookmarked: job.bookmarked,
-          isStatus: true,
-          badgeText: job.badge,
-          badgeColor: job.badgeColor,
-          status: job.status,
-          onBookmarkTap: () => toggleBookmark(index),
-          onTap: () => onJobTap(job),
-        );
-
-       /*   CommonJobCard(
-          title: job['title'],
-          location: job['location'],
-          date: job['date'],
-          time: job['time'],
-          price: job['price'],
-          distance: job['distance'],
-          applicants: job['applicants'],
-          badgeText: job['badge'],
-          badgeColor: job['badgeColor'],
-          description: job['description'],
-          onTap: () => onJobTap(job),
-        );*/
-      },
-    );
-  }
-  void toggleBookmark(int index) {
-   // setState(() {
-      jobs[index] = JobModel(
-        icon: jobs[index].icon,
-        title: jobs[index].title,
-        location: jobs[index].location,
-        date: jobs[index].date,
-        time: jobs[index].time,
-        distance: jobs[index].distance,
-        desc: jobs[index].desc,
-        timeAgo: jobs[index].timeAgo,
-        applicants: jobs[index].applicants,
-        price: jobs[index].price,
-
-        bookmarked: !jobs[index].bookmarked, status: '',
-      );
-   // });
-  }
-}
-
-class _RunningJobList extends StatelessWidget {
-  final List<JobModel> jobs;
-  final Function(JobModel) onJobTap;
-
-  const _RunningJobList({Key? key, required this.jobs, required this.onJobTap}) : super(key: key);
+  const _BookingJobsList(
+      {Key? key, required this.onJobTap, this.scrollController})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Filter jobs for running statuses
-    final runningJobs = jobs.where((job) =>
-      job.status == 'On the Way' || job.status == 'Paused' || job.status == 'Started').toList();
-    if (runningJobs.isEmpty) {
-      return const Center(child: Text('No running jobs found'));
-    }
-    return ListView.builder(
-      itemCount: runningJobs.length,
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 0),
-      itemBuilder: (context, index) {
-        final job = runningJobs[index];
-        return JobMatchCard(
-          iconPath: job.icon,
-          title: job.title,
-          location: job.location,
-          date: job.date,
-          time: job.time,
-          distance: job.distance,
-          desc: job.desc,
-          timeAgo: job.timeAgo,
-          applicants: job.applicants,
-          price: job.price,
-          bookmarked: job.bookmarked,
-          isStatus: true,
-          badgeText: job.badge,
-          badgeColor: job.badgeColor,
-          status: job.status,
-          onBookmarkTap: () {},
-          onTap: () => onJobTap(job),
+    return Consumer<BookingJobsProvider>(
+      builder: (context, bookingJobsProvider, child) {
+        if (bookingJobsProvider.isLoading) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (bookingJobsProvider.errorMessage != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Error: ${bookingJobsProvider.errorMessage}',
+                  style: TextStyle(color: Colors.red),
+                ),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => bookingJobsProvider.fetchBookingJobs(),
+                  child: Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (bookingJobsProvider.bookingJobs.isEmpty) {
+          return const Center(
+            child: Text('No jobs found'),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            await bookingJobsProvider.fetchBookingJobs();
+          },
+          child: ListView.builder(
+            //  controller: scrollController,
+            itemCount: bookingJobsProvider.bookingJobs.length,
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 0),
+            itemBuilder: (context, index) {
+              final bookingJob = bookingJobsProvider.bookingJobs[index];
+              return BookingJobCard(
+                bookingJob: bookingJob,
+                onBookmarkTap: () {},
+                onTap: () => onJobTap(bookingJob),
+              );
+            },
+          ),
         );
       },
     );

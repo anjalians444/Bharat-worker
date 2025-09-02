@@ -48,8 +48,6 @@ class CommonAddressForm extends StatelessWidget {
                     workAddressProvider.stateController.text = result['state'] ?? '';
                     workAddressProvider.cityController.text = result['city'] ?? '';
                     workAddressProvider.pinCodeController.text = result['pincode'] ?? '';
-                    print("result['latitude']..${result['latitude']}");
-                    print("result['longitude']..${result['longitude']}");
                     if (result['latitude'] != null) {
                       workAddressProvider.latitude = double.tryParse(result['latitude'].toString());
                     }

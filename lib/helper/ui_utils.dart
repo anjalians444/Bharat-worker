@@ -1,6 +1,7 @@
 import 'package:bharat_worker/constants/font_style.dart';
 import 'package:bharat_worker/constants/my_colors.dart';
 import 'package:bharat_worker/constants/sized_box.dart';
+import 'package:bharat_worker/provider/language_provider.dart';
 import 'package:flutter/material.dart';
 
 class UiUtils {
@@ -54,13 +55,13 @@ class UiUtils {
   ///============= Pick Image BottomSheet Ui =================
 
   static uploadImageBottomUi(BuildContext context,
-      GestureTapCallback cameraOnTap, GestureTapCallback galleryOnTap) {
+      GestureTapCallback cameraOnTap, GestureTapCallback galleryOnTap,LanguageProvider languageProvider, GestureTapCallback locationOnTap) {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Container(
-            height: 350,
+            height: 390,
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             margin: const EdgeInsets.only(top: 12),
             decoration: BoxDecoration(
@@ -81,10 +82,26 @@ class UiUtils {
                 hsized40,
 
                 itemUi(
-                    Icons.add, "Add_photo", galleryOnTap, 23, 24),
+                    Icons.add, "Add_photo", galleryOnTap, 23, 24,languageProvider),
                 hsized20,
                 itemUi(Icons.camera_enhance_outlined, "Take_new_photos",
-                    cameraOnTap, 23, 24),
+                    cameraOnTap, 23, 24,languageProvider),
+                hsized20,
+                itemUi(
+                    Icons.location_on, "Location", locationOnTap, 23, 24,languageProvider),
+                /*   GestureDetector(
+                  onTap: () {
+                    locationOnTap();
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: MyColors.appTheme.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.location_on, color: MyColors.appTheme, size: 28),
+                  ),
+                ),*/
                 hsized40,
                 InkWell(
                     onTap: () {
@@ -99,8 +116,8 @@ class UiUtils {
                             color: MyColors.appTheme,
                             borderRadius: BorderRadius.circular(20)),
                         child: Text(
-                          "cancel",
-                          style: semiBoldTextStyle(fontSize:16.0, color:MyColors.lightText)
+                            "cancel",
+                            style: semiBoldTextStyle(fontSize:16.0, color:MyColors.whiteColor)
                         ))),
                 hsized20,
               ],
@@ -114,7 +131,7 @@ class UiUtils {
 
   ///================Item card ui=====================
   static itemUi(IconData icon, String title, GestureTapCallback onTap,
-      double height, double width) {
+      double height, double width,LanguageProvider languageProvider) {
     return InkWell(
       radius: 80,
       onTap: onTap,
@@ -147,10 +164,10 @@ class UiUtils {
             ),
 
             Text(
-              title,
+              languageProvider.translate(title),
               style: const TextStyle(
                   fontSize: 13,
-                 // fontFamily: MyFonts.poppinsMedium,
+                  // fontFamily: MyFonts.poppinsMedium,
                   color: MyColors.blackColor),
             )
           ],
@@ -158,6 +175,5 @@ class UiUtils {
       ),
     );
   }
-
 
 }

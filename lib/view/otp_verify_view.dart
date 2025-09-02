@@ -7,6 +7,7 @@ import 'package:bharat_worker/provider/auth_provider.dart';
 import 'package:bharat_worker/provider/language_provider.dart';
 import 'package:bharat_worker/widgets/common_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -19,21 +20,24 @@ class OtpVerifyView extends StatefulWidget {
 
 class _OtpVerifyViewState extends State<OtpVerifyView> {
   late List<FocusNode> _focusNodes;
-  late List<TextEditingController> _controllers;
-  int _timerSeconds = 60;
+  // late List<TextEditingController> _controllers;
+  late TextEditingController _otpControllers;
+  int _timerSeconds = 30;
   String? _otpError;
   late final Ticker _ticker;
+  String _currentOtp = '';
+  bool _shouldClearOtp = false;
 
   @override
   void initState() {
     super.initState();
     _focusNodes = List.generate(6, (_) => FocusNode());
-    _controllers = List.generate(6, (_) => TextEditingController());
+    _otpControllers = TextEditingController(); // ✅ Add this line
     _startTimer();
   }
 
   void _startTimer() {
-    _timerSeconds = 75;
+    _timerSeconds = 30;
     _ticker = Ticker((_) {
       if (_timerSeconds > 0) {
         setState(() {
@@ -51,38 +55,26 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
     for (final node in _focusNodes) {
       node.dispose();
     }
-    for (final controller in _controllers) {
-      controller.dispose();
-    }
+    _otpControllers.dispose(); // ✅ Add this line
     _ticker.dispose();
     super.dispose();
   }
 
-  String get _otp => _controllers.map((c) => c.text).join();
 
-  void _onOtpChanged(int idx, String value) {
-    if (value.length == 1 && idx < 5) {
-      _focusNodes[idx + 1].requestFocus();
-    }
-    if (value.isEmpty && idx > 0) {
-      _focusNodes[idx - 1].requestFocus();
-    }
-    setState(() {
-      _otpError = null;
-    });
-  }
+
+
 
   Future<void> _verifyOtp(AuthProvider authProvider, LanguageProvider languageProvider) async {
     setState(() {
       _otpError = null;
     });
-    if (_otp.length < 6) {
+    if (_otpControllers.text.length < 6) {
       setState(() {
         _otpError = languageProvider.translate('wrong_otp');
       });
       return;
     }
-    final success = await authProvider.verifyOtp(context,_otp);
+    final success = await authProvider.verifyOtp(context,_otpControllers.text);
     if (!success) {
       setState(() {
         _otpError = authProvider.firebaseErrorMsg ?? languageProvider.translate('wrong_otp');
@@ -93,9 +85,11 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
 
   void _resendOtp(AuthProvider authProvider) async {
     await authProvider.resendOtp();
-    for (final c in _controllers) {
-      c.clear();
-    }
+    //for (final c in _controllers) {
+    _otpControllers.clear();
+    _currentOtp = '';
+    _shouldClearOtp = true;
+    // }
     setState(() {
       _otpError = null;
     });
@@ -110,7 +104,7 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
       backgroundColor: Colors.white,
       appBar: commonAppBar(() {
         Navigator.of(context).pop();
-      }, ""),
+      }, isLeading: false,""),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal:16),
@@ -123,47 +117,52 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
               ),
               hsized12,
               Text(
-                "${languageProvider.translate('otp_sent_to')} +91 98765 43210", // TODO: dynamic phone
+                "${languageProvider.translate('otp_sent_to')} +${authProvider.selectedCountry!.phoneCode}${authProvider.phoneController.text}", // TODO: dynamic phone
                 style: regularTextStyle(fontSize: 14.0, color: MyColors.lightText),
               ),
               const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (idx) {
-                  return Expanded(
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 5),
-                      width: 80,
-                      height:65,
-                      child: TextField(
-                        controller: _controllers[idx],
-                        focusNode: _focusNodes[idx],
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        maxLength: 1,
-                        style: boldTextStyle(fontSize: 24.0, color: MyColors.blackColor),
-                        decoration: InputDecoration(
-                          counterText: '',
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: MyColors.borderColor),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: MyColors.appTheme),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.red),
-                          ),
-                          contentPadding: EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onChanged: (v) => _onOtpChanged(idx, v),
-                      ),
-                    ),
-                  );
-                }),
+              OtpTextField(
+                numberOfFields: 6,
+                //controller: _otpControllers,
+                clearText: _shouldClearOtp,
+                showCursor: true,
+                fieldWidth: 45,
+                fieldHeight: 60,
+                borderColor: Color(0xFF512DA8),
+                //set to true to show as box or false to show as dash
+                showFieldAsBox: true,
+                borderRadius: BorderRadius.circular(12),
+                enabledBorderColor:MyColors.borderColor,
+                disabledBorderColor:  MyColors.borderColor,
+                focusedBorderColor: MyColors.appTheme,
+                borderWidth: 1,
+                enabled: !(authProvider.isVerifyingOtp || authProvider.isLoading),
+                // styles: [boldTextStyle(fontSize: 24.0, color: MyColors.blackColor)],
+                textStyle: boldTextStyle(fontSize: 24.0, color: MyColors.blackColor),
+                //runs when a code is typed in
+                onCodeChanged: (String code) {
+                  //handle validation or checks here
+                  _otpControllers.text = code;
+                  _currentOtp = code;
+                  if (_shouldClearOtp) {
+                    setState(() {
+                      _shouldClearOtp = false;
+                    });
+                  }
+                },
+                //runs when every textfield is filled
+                onSubmit: (String verificationCode){
+                  _otpControllers.text = verificationCode;
+                  _currentOtp = verificationCode;
+                  if (_shouldClearOtp) {
+                    setState(() {
+                      _shouldClearOtp = false;
+                    });
+                  }
+
+                }, // end onSubmit
               ),
+
               if (_otpError != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0, left: 4.0),
@@ -176,11 +175,7 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
                     ],
                   ),
                 ),
-              if (authProvider.isVerifyingOtp || authProvider.isLoading)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+
               hsized40,
               Align(
                 alignment: Alignment.center,
@@ -190,6 +185,11 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
                 ),
               ),
               const SizedBox(height: 24),
+              authProvider.isVerifyingOtp || authProvider.isLoading?
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Center(child: CircularProgressIndicator()),
+              ) :
               CommonButton(
                 text: languageProvider.translate('next'),
                 onTap: (){
@@ -200,7 +200,7 @@ class _OtpVerifyViewState extends State<OtpVerifyView> {
                 width: double.infinity,
                 margin: EdgeInsets.all(0),
               ),
-            hsized40,
+              hsized40,
               Center(
                 child: Text.rich(
                   TextSpan(

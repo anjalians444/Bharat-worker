@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:bharat_worker/helper/utility.dart';
+import 'package:bharat_worker/services/user_prefences.dart';
 import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
@@ -50,11 +51,7 @@ class CategoryProvider extends ChangeNotifier {
   List<String> selectedCategoryIds = [];
   // Selected subcategory IDs
   List<String> selectedSubCategoryIds = [];
-  List<String> _categoryTypes = [];
-  final List<ServicesTypes> _serviceTypesList = [];
   SubCategoryModel _subCategoryModel = SubCategoryModel();
-  List<ServicesTypes> get serviceTypesList => _serviceTypesList;
-  List<String> get categoryTypes => _categoryTypes;
   SubCategoryModel get subCategoryModel => _subCategoryModel;
   CategoryProvider(){
     fetchCategories();
@@ -65,9 +62,10 @@ class CategoryProvider extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      final response = await ApiService().get(ApiPaths.getServices);
+      final response = await ApiService().get(ApiPaths.getServices,);
       final List data = response['data']['services'] ?? [];
       _categories = data.map((e) => CategoryModel.fromJson(e)).toList();
+      setCategorySubcategory();
     } catch (e) {
       errorMessage = e.toString();
     }
@@ -75,32 +73,32 @@ class CategoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchSubCategories(BuildContext context,List<String> categoryIds) async {
+  Future<void> fetchSubCategories(BuildContext context,List<String> categoryIds,bool isEdit) async {
     isLoading = true;
     errorMessage = null;
-    // Clear old data to prevent duplicates
-    _categoryTypes.clear();
     _subCategories.clear();
     notifyListeners();
     Future.delayed(Duration.zero, progressLoadingDialog(context,true));
     try {
-
       final response = await ApiService().post(ApiPaths.getServicesByCategory, body: {
         'categoryIds': categoryIds,
       });
-     Future.delayed(Duration.zero, progressLoadingDialog(context,false));
-      final data = response['data'];
+      Future.delayed(Duration.zero, progressLoadingDialog(context,false));
       _subCategoryModel = SubCategoryModel.fromJson(response);
-      var categoryTypes = data['categoryType'];
-      if(categoryTypes != null){
-        _categoryTypes.addAll(List<String>.from(categoryTypes));
-        notifyListeners();
+      notifyListeners();
+      if (isEdit) {
+        print("widget.isEdit...${isEdit}");
+        // final profile = await PreferencesServices.getProfileData();
+        // final partner = profile?.data?.partner;
+        // print("subCategory...${profile?.data!.partner!.services}");
+        // if (partner!.services!.isNotEmpty) {
+          setCategorySubcategory();
+        // }
       }
-   
+      setCategorySubcategory();
     } catch (e) {
       errorMessage = e.toString();
     }
-
     isLoading = false;
     notifyListeners();
   }
@@ -113,52 +111,8 @@ class CategoryProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-  Future<void> fetchSubCategories1(List<String> categoryIds) async {
-    isLoading = true;
-    errorMessage = null;
-    // Clear old data to prevent duplicates
-    _categoryTypes.clear();
-    _subCategories.clear();
-    notifyListeners();
-    try {
-      final response = await ApiService().post(ApiPaths.getServicesByCategory,body:  {
-        'categoryIds': categoryIds,
-      });
-      print('API response keys: ${response.keys}');
-      final data = response['data'];
-      final List servicesTypes = data['servicesTypes'] ?? [];
-      final List categoryTypes = data['categoryType'] ?? [];
-      print('categoryTypes: ${categoryTypes}');
-      print('servicesTypes: ${servicesTypes}');
-      _categoryTypes = List<String>.from(categoryTypes);
-      List<SubCategoryModel> temp = [];
-      for (var cat in servicesTypes) {
-        for (var type in _categoryTypes) {
-          if (cat[type] != null) {
-            for (var sub in cat[type]) {
-              temp.add(SubCategoryModel.fromJson(sub));
-            }
-          }
-        }
-      }
-      _subCategories = temp;
-      print('_categoryTypes (final): ${_categoryTypes}');
-      print('_subCategories (final): ${_subCategories}');
-    } catch (e) {
-      errorMessage = e.toString();
-    }
-    isLoading = false;
-    notifyListeners();
-  }
 
-  void toggleCategorySelection1(String id) {
-    if (selectedCategoryIds.contains(id)) {
-      selectedCategoryIds.remove(id);
-    } else {
-      selectedCategoryIds.add(id);
-    }
-    notifyListeners();
-  }
+
 
   void toggleSubCategorySelection(String id) {
     if (selectedSubCategoryIds.contains(id)) {
@@ -169,9 +123,33 @@ class CategoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  setCategorySubcategory()async{
+ var   profileResponse = await PreferencesServices.getProfileData();
+    if(profileResponse != null){
+      if(profileResponse.data!.partner != null){
+        var model = profileResponse.data!.partner;
+        for(var c in model!.category!){
+          print("c.id...${c.id}");
+          if (!selectedCategoryIds.contains(c.id)) {
+            selectedCategoryIds.add(c.id.toString());
+          }
+        }
+        for(var s in model.services!){
+          print("s.id...${s.id}");
+          if (!selectedSubCategoryIds.contains(s.id)) {
+            selectedSubCategoryIds.add(s.id.toString());
+          }
+        }
+      }
+    }
+
+    notifyListeners();
+  }
+
   void clearSelections() {
     selectedCategoryIds.clear();
     selectedSubCategoryIds.clear();
+    _yearExperiences.clear();
     notifyListeners();
   }
 
@@ -193,9 +171,12 @@ class CategoryProvider extends ChangeNotifier {
   }
 
   void clear() {
+    selectedCategoryIds.clear();
+    selectedSubCategoryIds.clear();
     searchController.clear();
     otherController.clear();
     selectedCategoryIds.clear();
+    _yearExperiences.clear();
     notifyListeners();
   }
 
@@ -229,16 +210,28 @@ class CategoryProvider extends ChangeNotifier {
   }) async {
 
     final Map<String, String> fields = {};
+    
+    // Add skills array
     for (int i = 0; i < skills.length; i++) {
       fields['skills[$i]'] = skills[i];
-      fields['yearOfExprence[$i]'] = yearOfExprence[i].toString();
     }
+    
+    // Add yearOfExprence mapping to skill IDs
+    for (int i = 0; i < skills.length; i++) {
+      final subId = skills[i];
+      fields['yearOfExprence[$subId]'] = yearOfExprence[i].toString();
+    }
+    
     List<http.MultipartFile> files = [];
+    
+    // Add experienceCertificates mapping to skill IDs
     for (int i = 0; i < skills.length; i++) {
       final subId = skills[i];
       final certFile = certificateImages[subId];
       print("certFile...$certFile");
+      print("subId...$subId");
       if (certFile != null) {
+        print("subId...$subId");
         final mimeType = lookupMimeType(certFile.path);
         print('mimeType...$mimeType');
         if (mimeType == null) continue;
@@ -251,7 +244,7 @@ class CategoryProvider extends ChangeNotifier {
         }
         final typeParts = mimeType.split('/');
         final file = await http.MultipartFile.fromPath(
-          'experienceCertificates',
+          'experienceCertificates[$subId]',
           certFile.path,
           contentType: MediaType(typeParts[0], typeParts[1]),
         );
@@ -259,14 +252,14 @@ class CategoryProvider extends ChangeNotifier {
         files.add(file);
       }
     }
+    print("fields...${fields}");
+    print("files...${files.length}");
 
-
-    final response = await ApiService().postMultipart(
+    var response = await ApiService().postMultipart(
       ApiPaths.partnerSkills,
       fields: fields,
       files: files,
     );
-
 
     print("response...$response");
     return response;

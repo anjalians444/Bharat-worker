@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 List<ChatMessages> list = [];
 class ChatServices {
- // final SharedPreferences prefs;
+  // final SharedPreferences prefs;
   final FirebaseFirestore firebaseFirestore;
   final FirebaseStorage firebaseStorage;
 
@@ -88,19 +88,46 @@ class ChatServices {
 
   /// Update message status to delivered
   Future<void> markMessageDelivered(String groupChatId, String messageId) async {
-    await firebaseFirestore
-        .collection(FirestoreConstants.pathMessageCollection)
-        .doc(groupChatId)
-        .collection(FirestoreConstants.message)
-        .doc(messageId)
-        .update({'status': '1'}); // 1 = delivered
+    try {
+      // Validate inputs
+      if (groupChatId.isEmpty || messageId.isEmpty) {
+        debugPrint('Invalid parameters: groupChatId=$groupChatId, messageId=$messageId');
+        return;
+      }
+
+      // Convert messageId (timestamp string) to Timestamp
+      final timestamp = Timestamp.fromMillisecondsSinceEpoch(int.parse(messageId));
+
+      debugPrint('Marking message as delivered - GroupChatId: $groupChatId, MessageId: $messageId, Timestamp: $timestamp');
+
+      // Query for the message using timestamp
+      final query = await firebaseFirestore
+          .collection(FirestoreConstants.pathMessageCollection)
+          .doc(groupChatId)
+          .collection(FirestoreConstants.message)
+          .where(FirestoreConstants.timestamp, isEqualTo: timestamp)
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        // Update the first matching document
+        await query.docs.first.reference.update({'status': '1'}); // 1 = delivered
+        debugPrint('Message status updated to delivered successfully');
+      } else {
+        debugPrint('No message found with timestamp: $timestamp');
+      }
+    } catch (FormatException ) {
+      debugPrint('Error parsing messageId as timestamp: ');
+    } catch (e) {
+      debugPrint('Error marking message as delivered: $e');
+    }
   }
 
 
-   Future<void> getSelfInfo(String userId,
-       String isOnline,
-       String lastActive,
-       int count) async {
+  Future<void> getSelfInfo(String userId,
+      String isOnline,
+      String lastActive,
+      int count) async {
     await firebaseFirestore
         .collection('users')
         .doc(userId.toString())
@@ -114,11 +141,11 @@ class ChatServices {
     });
   }
 
-   Future<void> updateChatCount(
-       String currentUserId,
-       String isOnline,
-       String lastActive,
-       int count,) async {
+  Future<void> updateChatCount(
+      String currentUserId,
+      String isOnline,
+      String lastActive,
+      int count,) async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
 
     DocumentReference documentReference =  firebaseFirestore
@@ -137,7 +164,7 @@ class ChatServices {
   }
 
 
-   Future<void> createChatCount(String userId) async {
+  Future<void> createChatCount(String userId) async {
     final time = DateTime.now().millisecondsSinceEpoch.toString();
     final chatUser = ChatCount(
       userId: userId.toString(),
@@ -169,13 +196,13 @@ class ChatServices {
           await userDocRef.update({'count': count-1});
           //debugPrint('Count decremented by 1.');
         } else {
-         // debugPrint('Count is already zero.');
+          // debugPrint('Count is already zero.');
         }
       } else {
-       // debugPrint('No such document!');
+        // debugPrint('No such document!');
       }
     } catch (e) {
-    //  debugPrint('Error getting document: $e');
+      //  debugPrint('Error getting document: $e');
     }
   }
 
@@ -190,8 +217,8 @@ class ChatServices {
         final int count = data?['count'] ?? 0;
 
         debugPrint("count....$count");
-          await userDocRef.update({'count':totalCount});
-          debugPrint('Count decremented by 1.');
+        await userDocRef.update({'count':totalCount});
+        debugPrint('Count decremented by 1.');
 
       } else {
         debugPrint('No such document!');
@@ -203,17 +230,57 @@ class ChatServices {
 
 
 
-  Future<void> seeMsg(String groupId,String senderId,String seen) async{
-    final query = await FirebaseFirestore.instance
-        .collection(FirestoreConstants.pathMessageCollection)
-        .doc(groupId.toString())
-        .collection(FirestoreConstants.message)
-        .where('sender_id', isEqualTo: senderId)
-        .where('seen', isEqualTo: "0")
-        .get();
+  Future<void> seeMsg(String groupId, String senderId, String seen) async {
+    try {
+      debugPrint('Marking messages as seen - GroupId: $groupId, SenderId: $senderId, Seen: $seen');
 
-    for (var doc in query.docs) {
-      doc.reference.update({'seen': seen, 'status': '2'}); // <-- Set status to '2' (seen)
+      // Mark messages sent by senderId that are unread
+      final query = await FirebaseFirestore.instance
+          .collection(FirestoreConstants.pathMessageCollection)
+          .doc(groupId.toString())
+          .collection(FirestoreConstants.message)
+          .where('sender_id', isEqualTo: senderId) // Messages sent by this sender
+          .where('seen', isEqualTo: "0")
+          .get();
+
+
+      debugPrint('Found ${query.docs.length} messages to mark as seen');
+
+      for (var doc in query.docs) {
+        await doc.reference.update({'seen': seen, 'status': '2'}); // Set status to '2' (seen)
+      }
+
+      debugPrint('Successfully marked ${query.docs.length} messages as seen');
+    } catch (e) {
+      debugPrint('Error in seeMsg: $e');
+    }
+  }
+
+  // New method to mark messages as seen with current user ID
+  Future<void> markMessagesAsSeen(String groupId, String currentUserId, String partnerId,String status,String seen ) async {
+    print("status...$status");
+    try {
+      debugPrint('Marking messages as seen - GroupId: $groupId, CurrentUserId: $currentUserId, PartnerId: $partnerId');
+
+      // Mark messages sent by partnerId to currentUserId that are unread
+      final query = await FirebaseFirestore.instance
+          .collection(FirestoreConstants.pathMessageCollection)
+          .doc(groupId.toString())
+          .collection(FirestoreConstants.message)
+          .where('sender_id', isEqualTo: partnerId) // Messages sent by partner
+          .where('receiver_id', isEqualTo: currentUserId) // Messages received by current user
+          .where('seen', isEqualTo: "0")
+          .get();
+
+      debugPrint('Found ${query.docs.length} messages to mark as seen');
+
+      for (var doc in query.docs) {
+        await doc.reference.update({'seen': seen, 'status': status}); // Set status to '2' (seen)
+      }
+
+      debugPrint('Successfully marked ${query.docs.length} messages as seen');
+    } catch (e) {
+      debugPrint('Error in markMessagesAsSeen: $e');
     }
   }
 
@@ -229,6 +296,19 @@ class ChatServices {
     for (var doc in query.docs) {
       doc.reference.update({'lastMessage': "1"});
     }
+  }
+
+  // Method to count unread messages for a specific chat
+  Stream<int> getUnreadCountForChat(String groupChatId, String currentUserId, String partnerId) {
+    return firebaseFirestore
+        .collection(FirestoreConstants.pathMessageCollection)
+        .doc(groupChatId)
+        .collection(FirestoreConstants.message)
+        .where('sender_id', isEqualTo: partnerId)
+        .where('receiver_id', isEqualTo: currentUserId)
+        .where('seen', isEqualTo: '0')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
   }
 
   // Method to count the messages with lastMessage equal to "0"
@@ -270,7 +350,7 @@ class ChatServices {
   String getChatRoomIdByUserId1(String userID, String bookingId,String peerID) {
     int userId = int.parse(userID);
     int peerId = int.parse(peerID);
-  var  groupChatId = "";
+    var  groupChatId = "";
     if (userId <= peerId) {
       groupChatId = '$userId-$bookingId-$peerId';
     } else {
@@ -280,19 +360,19 @@ class ChatServices {
   }
 
   String getChatRoomIdByUserId(String userID, String peerID) {
-    int userId = userID == "null" || userID == "" ?0: int.parse(userID);
-    int peerId = peerID == "null" || peerID == "" ?0:int.parse(peerID);
-    var  groupChatId = "";
-    if (userId <= peerId) {
-      groupChatId = '$userId-$peerId';
+    // Handle null or empty IDs
+    if (userID == "null" || userID.isEmpty) userID = "0";
+    if (peerID == "null" || peerID.isEmpty) peerID = "0";
+
+    // Compare strings lexicographically to ensure consistent ordering
+    var groupChatId = "";
+    if (userID.compareTo(peerID) <= 0) {
+      groupChatId = '$userID-$peerID';
     } else {
-      groupChatId = '$peerId-$userId';
+      groupChatId = '$peerID-$userID';
     }
     return groupChatId;
-  /* return userID.hashCode <= peerID.hashCode
-       ? '$userID-$peerID'
-       : '$peerID-$userID';*/
- }
+  }
 
   // Stream to get unread message count for a user in real time
   Stream<int> getUnreadCountStream(String userId) {

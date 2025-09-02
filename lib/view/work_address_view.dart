@@ -45,7 +45,7 @@ class WorkAddressView extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: commonAppBar(() {
         Navigator.of(context).pop();
-      }, ""),
+      }, isLeading: false,""),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,32 +84,26 @@ class WorkAddressView extends StatelessWidget {
             child: CommonButton(
               text: languageProvider.translate('next'),
               onTap: workAddressProvider.isLoading ? (){} : () async {
-                final success = await workAddressProvider.workLocationUpdate(context);
-
-                /*if (success) {
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => CommonSuccessDialog(
-                      image:SvgPicture.asset(MyAssetsPaths.certified,height: 132,width: 132,),
-                      title: "You're Now a Certified Partner!",
-                      subtitle: "You can now access more job requests and earn trust faster.",
-                      buttonText: "Go to Dashboard",
-                      onButtonTap: () {
-                        Navigator.of(context).pop();
-                        context.go(AppRouter.dashboard);
-                      },
-                    ),
-                  );
-                } else if (workAddressProvider.apiError != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(workAddressProvider.apiError!)),
-                  );
-                }*/
+           await workAddressProvider.workLocationUpdate(context,false);
               },
               margin: const EdgeInsets.all(16),
             ),
           ),
+
+          // Padding(
+          //   padding: const EdgeInsets.only(bottom: 20.0),
+          //   child: CommonButton(
+          //     text: languageProvider.translate('skip'),
+          //     onTap:  (){
+          //       context.go(AppRouter.documentUploadSection);
+          //     },
+          //     backgroundColor: MyColors.lightGreyColor,
+          //     textColor: Colors.black,
+          //     width: double.infinity,
+          //     margin: EdgeInsets.all(0),
+          //   ),
+          // ),
+
         ],
       ),
     );

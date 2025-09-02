@@ -1,7 +1,13 @@
 import 'dart:convert';
+import 'package:bharat_worker/helper/router.dart';
+import 'package:bharat_worker/main.dart';
+import 'package:bharat_worker/provider/auth_provider.dart';
 import 'package:bharat_worker/services/api_paths.dart';
 import 'package:bharat_worker/services/user_prefences.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -19,6 +25,24 @@ class ApiService {
     final response = await http.get(url, headers: mergedHeaders);
     return _processResponse(response);
   }
+
+  Future<dynamic> post1(String endpoint, {Map<String, String>? headers, dynamic body,bool isToken = true}) async {
+
+
+    final url = Uri.parse(ApiPaths.baseUrl + endpoint);
+    print("url...$url");
+    final mergedHeaders = <String, String>{'Content-Type': 'application/json'};
+    if (headers != null) mergedHeaders.addAll(headers);
+
+    print("body..$body");
+    final response = await http.post(
+      url,
+      headers: mergedHeaders,
+      body: jsonEncode(body),
+    );
+    return _processResponse(response);
+  }
+
 
   Future<dynamic> post(String endpoint, {Map<String, String>? headers, dynamic body,bool isToken = true}) async {
     var token;
@@ -72,7 +96,6 @@ class ApiService {
   Future<dynamic> postMultipart(String endpoint, {Map<String, String>? headers, required Map<String, String> fields, required List<http.MultipartFile> files}) async {
    String token = await PreferencesServices.getPreferencesData(PreferencesServices.userToken);
 
-   print("token...$token");
     final url = Uri.parse(ApiPaths.baseUrl + endpoint);
     var request = http.MultipartRequest('POST', url);
     if (headers != null) request.headers.addAll(headers);
@@ -88,13 +111,77 @@ class ApiService {
     return _processResponse(response);
   }
 
-  dynamic _processResponse(http.Response response) {
+  dynamic _processResponse(http.Response response) async {
     print("response...${jsonDecode(response.body)}");
+    print(response.statusCode);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return jsonDecode(response.body);
+    } else {
+      print('API Error: ${response.statusCode} - ${response.body}');
+      var re = jsonDecode(response.body);
+      print("re['message']....${re['message']}");
+
+      if (re['message'] != null &&
+          re['message'].toString().toLowerCase().contains('user not found')) {
+        print("User not found detected, showing dialog");
+
+        handleUserNotExit();
+
+       /* await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("User Not Found"),
+              content: Text("Your account is not found. Please login again."),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    await authProvider.logout(context);
+                    context.go(AppRouter.loginSignUp);
+                  },
+                  child: Text("OK"),
+                ),
+              ],
+            );
+          },
+        );*/
+
+        return;
+      }
+
+      throw Exception('${re['message']}');
+    }
+  }
+
+
+  dynamic _processResponse1(http.Response response) {
+    print("response...${jsonDecode(response.body)}");
+    print(response.statusCode)
+    ;
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body);
     } else {
       print('API Error: \\${response.statusCode} - \\${response.body}');
-      throw Exception('API Error: \\${response.statusCode} - \\${response.body}');
+      var re = jsonDecode(response.body);
+      print("re['message']....${re['message']}");
+      // Check if the response contains "User not found" message
+      if (re['message'] != null && re['message'].toString().toLowerCase().contains('user not found')) {
+        print("User not found detected, throwing UserNotFoundException");
+
+      }
+      throw Exception('${re['message']}');
     }
+
   }
-} 
+
+  void handleUserNotExit() async{
+    final context = rootNavigatorKey.currentContext!;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.logout(context);
+    context.go(AppRouter.loginSignUp);
+  }
+}

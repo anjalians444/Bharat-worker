@@ -1,8 +1,11 @@
-import 'package:bharat_worker/models/job_model.dart';
+import 'package:bharat_worker/main.dart';
+import 'package:bharat_worker/models/booking_job_model.dart';
+import 'package:bharat_worker/models/subscription_plan_model.dart';
 import 'package:bharat_worker/view/add_money_view.dart';
 import 'package:bharat_worker/view/category_view/experience_view.dart';
 import 'package:bharat_worker/view/my_payment_view.dart';
 import 'package:bharat_worker/view/onboarding_view.dart';
+import 'package:bharat_worker/view/pages/payment_transaction_detail_view.dart';
 import 'package:bharat_worker/view/pages/saved_job_view.dart';
 import 'package:bharat_worker/view/pages/upload_file_view.dart';
 import 'package:bharat_worker/view/splash_view.dart';
@@ -11,7 +14,9 @@ import 'package:bharat_worker/view/login_signup_view.dart';
 import 'package:bharat_worker/view/login_view.dart';
 import 'package:bharat_worker/view/otp_verify_view.dart';
 import 'package:bharat_worker/view/category_view/sub_category_view.dart';
+import 'package:bharat_worker/view/phone_pe_view.dart';
 import 'package:bharat_worker/view/subscription_plan_view.dart';
+import 'package:bharat_worker/view/my_subscription_view.dart';
 import 'package:bharat_worker/view/tell_us_about_view.dart';
 import 'package:bharat_worker/view/category_view/all_category_view.dart';
 import 'package:bharat_worker/view/widgets/document_upload_section.dart';
@@ -32,6 +37,7 @@ import '../view/pages/quiz_view.dart';
 import '../view/pages/see_all_transactions_view.dart';
 import '../view/chat_view.dart';
 import '../view/job_navigation_view.dart';
+import '../view/location_dialog_view.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -45,6 +51,8 @@ class AppRouter {
   static const String subCategory = '/sub-category';
   static const String experience = '/experience-view';
   static const String subscriptionPlanView = '/subscription-plan-view';
+  static const String mySubscriptionView = '/my-subscription-view';
+  static const String mySubscription = '/my-subscription';
   static const String workAddress = '/work-address';
   static const String dashboard = '/dashboard';
   static const String jobDetail = '/job-detail';
@@ -58,12 +66,16 @@ class AppRouter {
   static const String quiz = '/quiz';
   static const String chat = '/chat';
   static const String jobNavigation = '/job-navigation';
+  static const String locationDialog = '/location-dialog';
   static const String savedJob = '/saved-job';
   static const String myPayment = '/my-payment';
   static const String seeAllTransaction = '/see-all-transactions';
   static String addMoney = '/add-money';
+  static String paymentTransactionDetail = '/payment-transaction-detail';
+  static const String phonePe = '/phone-pe';
 
   static final GoRouter router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: splash, // Splash screen as the initial screen
     routes: [
       GoRoute(
@@ -140,9 +152,10 @@ class AppRouter {
       GoRoute(
         path: allCategory,
         pageBuilder: (context, state) {
-          final extra = state.extra as Map<String, List<String>>?;
-  final bool isEdit = extra?['isEdit'] as bool? ?? false;
-  return CustomTransitionPage(
+          final extra = state.extra as Map<String, dynamic>?;
+          final bool isEdit = extra?['isEdit'] as bool? ?? false;
+
+          return CustomTransitionPage(
   key: state.pageKey,
   child:  AllCategoryView(isEdit: isEdit),
   transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -231,7 +244,63 @@ class AppRouter {
             },
           );
         },
+      ), GoRoute(
+        path: mySubscriptionView,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: MySubscriptionView(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
       ),
+
+      GoRoute(
+        path: mySubscription,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const MySubscriptionView(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+  /*    GoRoute(
+        path: phonePe,
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const PhonePeView(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),*/
 
       GoRoute(
         path: workAddress,
@@ -267,28 +336,36 @@ class AppRouter {
         ),
       ),
 
+
       GoRoute(
         path: dashboard,
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const DashboardView(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            );
-          },
-        ),
+
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?; // Correct key type
+          final tab = extra?['tab'] as int? ?? 0; // Extract tab safely, fallback to 0
+
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: DashboardView(initialTab: tab),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
       ),
+
 
       GoRoute(
         path: jobDetail,
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
-          child: JobDetailView(jobData: state.extra as JobModel),
+          child: JobDetailView(jobData: state.extra as BookingJob),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return SlideTransition(
               position: Tween<Offset>(
@@ -337,6 +414,51 @@ class AppRouter {
           );
         },
       ),
+
+      GoRoute(
+        path: paymentTransactionDetail,
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final SubscriptionPlanModel? planModel = extra != null ? extra['plan'] as SubscriptionPlanModel : null;
+
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: PaymentTransactionDetailView(planModel: planModel!),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
+      GoRoute(
+        path: phonePe,
+        pageBuilder: (context, state) {
+          // final extra = state.extra as Map<String, dynamic>?;
+          // final SubscriptionPlanModel? planModel = extra != null ? extra['plan'] as SubscriptionPlanModel : null;
+
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: PhonePeView(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
+      ),
+
 
       GoRoute(
         path: notificationSettings,
@@ -541,6 +663,32 @@ class AppRouter {
             );
           },
         ),
+      ),
+
+      GoRoute(
+        path: locationDialog,
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: LocationDialogView(
+              latitude: extra['latitude'] ?? 0.0,
+              longitude: extra['longitude'] ?? 0.0,
+              address: extra['address'] ?? '',
+              customerName: extra['customerName'] ?? '',
+              customerPhone: extra['customerPhone'] ?? '',
+            ),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        },
       ),
 
     ],

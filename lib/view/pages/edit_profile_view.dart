@@ -4,6 +4,7 @@ import 'package:bharat_worker/constants/my_colors.dart';
 import 'package:bharat_worker/constants/sized_box.dart';
 import 'package:bharat_worker/helper/common.dart';
 import 'package:bharat_worker/helper/router.dart';
+import 'package:bharat_worker/helper/utility.dart';
 import 'package:bharat_worker/provider/language_provider.dart';
 import 'package:bharat_worker/provider/profile_provider.dart';
 import 'package:bharat_worker/provider/work_address_provider.dart';
@@ -12,11 +13,8 @@ import 'package:bharat_worker/view/widgets/document_upload_section.dart';
 import 'package:bharat_worker/widgets/category_selection_widget.dart';
 import 'package:bharat_worker/widgets/common_address_form.dart';
 import 'package:bharat_worker/widgets/common_button.dart';
-import 'package:bharat_worker/widgets/common_loader.dart';
-import 'package:bharat_worker/widgets/common_success_dialog.dart';
 import 'package:bharat_worker/widgets/profile_form_section.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -37,41 +35,45 @@ class _EditProfileViewState extends State<EditProfileView>
     _tabController = TabController(length: 4, vsync: this);
     // Set selected categories from profile after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final categoryProvider =
-          Provider.of<CategoryProvider>(context, listen: false);
-      final workAddressProvider =
-          Provider.of<WorkAddressProvider>(context, listen: false);
+      final categoryProvider = Provider.of<CategoryProvider>(context, listen: false);
+      final workAddressProvider = Provider.of<WorkAddressProvider>(context, listen: false);
       categoryProvider.fetchCategories();
       final profileProvider =
           Provider.of<ProfileProvider>(context, listen: false);
       profileProvider.getProfileData();
+      Future.delayed(Duration.zero,(){
+        profileProvider.getProfile();
+      });
 
+
+      final partner = profileProvider.partner;
+      if (partner != null) {
+        workAddressProvider.setInitialAddressFromPartner(partner);
+      }
       final partnerCategories = profileProvider.partner?.category;
-      final partnerSubCategories = profileProvider.partner?.subCategory;
+      final partnerSubCategories = profileProvider.partner?.services;
       // print("partnerCategories....${partnerCategories}");
       if (partnerCategories != null && partnerCategories.isNotEmpty) {
         categoryProvider.selectedCategoryIds.clear();
         // Only set if not already set (to avoid overwriting user changes)
         if (categoryProvider.selectedCategoryIds.isEmpty) {
-          categoryProvider.selectedCategoryIds =
-              List<String>.from(partnerCategories);
-          categoryProvider.notifyListeners();
+          for(var c in partnerCategories){
+            print("c.id...${c.id}");
+            if (!categoryProvider.selectedCategoryIds.contains(c.id)) {
+              categoryProvider.selectedCategoryIds.add(c.id.toString());
+            }
+          }
+        }
+        if(partnerSubCategories != null && partnerSubCategories.isNotEmpty){
+          for(var s in partnerSubCategories!){
+            print("s.id...${s.id}");
+            if (!categoryProvider.selectedSubCategoryIds.contains(s.id)) {
+              categoryProvider.selectedSubCategoryIds.add(s.id.toString());
+            }
+          }
         }
       }
-      if (partnerSubCategories != null && partnerSubCategories.isNotEmpty) {
-        categoryProvider.selectedSubCategoryIds.clear();
-        // Only set if not already set (to avoid overwriting user changes)
-        if (categoryProvider.selectedSubCategoryIds.isEmpty) {
-          categoryProvider.selectedSubCategoryIds =
-              List<String>.from(partnerSubCategories);
-          categoryProvider.notifyListeners();
-        }
-      }
-      // Pre-fill address fields from partner
-      final partner = profileProvider.partner;
-      if (partner != null) {
-        workAddressProvider.setInitialAddressFromPartner(partner);
-      }
+
     });
   }
 
@@ -100,10 +102,10 @@ class _EditProfileViewState extends State<EditProfileView>
         children: [
           hsized25,
           Padding(
-            padding: const EdgeInsets.only(right: 20.0, left: 20),
+            padding: const EdgeInsets.only(right: 20.0, left: 0),
             child: TabBar(
               controller: _tabController,
-              // isScrollable: true,
+            //   isScrollable: true,
               labelPadding: EdgeInsets.symmetric(horizontal: 2.0),
               // Gap kam karne ke liye
               labelColor: MyColors.appTheme,
@@ -197,28 +199,35 @@ class _EditProfileViewState extends State<EditProfileView>
           CommonButton(
             text: languageProvider.translate('save_and_continue'),
             onTap: () async {
+              FocusScope.of(context).unfocus(); // <-- Add this line
               if (_tabController.index == 0) {
-                final success = await profileProvider.updateProfile(context);
+
+                final success = await profileProvider.updateProfile(context,true);
                 if (success.success == true) {
                   profileProvider.getProfileData();
                 }
               } else if (_tabController.index == 1) {
-                print(
-                    "categoryProvider.selectedCategoryIds...${categoryProvider.selectedCategoryIds}");
-                context.push(
-                  AppRouter.subCategory,
-                  extra: {
-                    "selectedCategoryIds": categoryProvider.selectedCategoryIds,
-                    'isEdit': true,
-                  },
-                  //  extra: categoryProvider.selectedCategoryIds
-                );
+                if(categoryProvider.selectedCategoryIds.isEmpty){
+                  customToast(context, "Please select category");
+                }else{
+                  context.push(
+                    AppRouter.subCategory,
+                    extra: {
+                      "selectedCategoryIds": categoryProvider.selectedCategoryIds,
+                      'isEdit': true,
+                    },
+                    //  extra: categoryProvider.selectedCategoryIds
+                  );
+                }
+
               } else if (_tabController.index == 2) {
-                    await workAddressProvider.workLocationUpdate(context);
+                    await workAddressProvider.workLocationUpdate(context,true).then((onValue){
+                      profileProvider.getProfileData();
+                    });
                }
               else if (_tabController.index == 3) {
                 profileProvider.unfocusf(context);
-                // if (!profileProvider.validateDocumentUpload(context)) {
+                // if (!profileProvider.validateDocumentUpload( context,true)) {
                 //   return;
                 // }
 
@@ -226,7 +235,11 @@ class _EditProfileViewState extends State<EditProfileView>
                   context: context,
                   selectedIdType: profileProvider.selectedIdType,
                   idNumber: profileProvider.idController.text.trim(),
+                   isEdit:  true
                 );
+                if(success){
+                  profileProvider.getProfileData();
+                }
 
               }
             },

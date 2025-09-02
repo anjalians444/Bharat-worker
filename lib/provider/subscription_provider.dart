@@ -11,10 +11,16 @@ class SubscriptionProvider extends ChangeNotifier {
     fetchSubscriptionPlans();
   }
 
+  void clearError() {
+    error = null;
+    notifyListeners();
+  }
+
   Future<void> fetchSubscriptionPlans() async {
     isLoading = true;
     error = null;
     notifyListeners();
+    
     try {
       final response = await ApiService().get('partner/get-subscription-plans');
       print("response...$response");
@@ -22,13 +28,22 @@ class SubscriptionProvider extends ChangeNotifier {
         plans = (response['data'] as List)
             .map((e) => SubscriptionPlanModel.fromJson(e))
             .toList();
+        error = null; // Clear any previous errors
       } else {
         error = response['message'] ?? 'Unknown error';
       }
     } catch (e) {
       error = e.toString();
+      print("Error fetching subscription plans: $e");
     }
+    
     isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> retryFetch() async {
+    if (!isLoading) {
+      await fetchSubscriptionPlans();
+    }
   }
 } 

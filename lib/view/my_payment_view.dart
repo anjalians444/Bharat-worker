@@ -12,13 +12,27 @@ import '../constants/font_style.dart';
 import '../constants/assets_paths.dart';
 import '../provider/payment_provider.dart';
 
-class MyPaymentView extends StatelessWidget {
+class MyPaymentView extends StatefulWidget {
   const MyPaymentView({Key? key}) : super(key: key);
+
+  @override
+  State<MyPaymentView> createState() => _MyPaymentViewState();
+}
+
+class _MyPaymentViewState extends State<MyPaymentView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
+      paymentProvider.fetchTransactionHistory();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final paymentProvider = Provider.of<PaymentProvider>(context);
-    final transactions = paymentProvider.transactions;
+    final transactions = paymentProvider.transactionHistory;
     final languageProvider = Provider.of<LanguageProvider>(context);
     return Scaffold(
 
@@ -222,21 +236,25 @@ class MyPaymentView extends StatelessWidget {
                   TextButton(
                     onPressed: () {
                       context.push(AppRouter.seeAllTransaction);
-                      Navigator.pushNamed(context, '/seeAllTransactions');
+                     // Navigator.pushNamed(context, '/seeAllTransactions');
                     },
                     child: Text('See All', style: mediumTextStyle(fontSize: 12.0, color: MyColors.color7D7D7D, height: 1.2, overflow: TextOverflow.ellipsis)),
                   ),
                 ],
               ),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: transactions.length > 4 ? 4 : transactions.length,
-                itemBuilder: (context, index) {
-                  final transaction = transactions[index];
-                  return TransactionHistoryCard(transaction: transaction);
-                },
-              ),
+              paymentProvider.isTransactionLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : transactions.isEmpty
+                      ? const Center(child: Text('No transactions found'))
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: transactions.length > 4 ? 4 : transactions.length,
+                          itemBuilder: (context, index) {
+                            final transaction = transactions[index];
+                            return TransactionHistoryCard(transaction: transaction);
+                          },
+                        ),
             ],
           ),
         ),

@@ -4,13 +4,17 @@ import 'package:bharat_worker/provider/auth_provider.dart';
 import 'package:bharat_worker/provider/chat_provider.dart';
 import 'package:bharat_worker/provider/profile_provider.dart';
 import 'package:bharat_worker/provider/subscription_provider.dart';
+import 'package:bharat_worker/provider/subscription_management_provider.dart';
+import 'package:bharat_worker/provider/message_provider.dart';
 import 'package:bharat_worker/services/chat_services.dart';
+import 'package:bharat_worker/services/api_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'provider/language_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -19,10 +23,30 @@ import 'package:bharat_worker/provider/work_address_provider.dart';
 import 'package:bharat_worker/provider/training_provider.dart';
 import 'package:bharat_worker/provider/quiz_provider.dart';
 import 'package:bharat_worker/provider/payment_provider.dart';
+import 'package:bharat_worker/provider/notification_provider.dart';
+import 'package:bharat_worker/provider/active_jobs_provider.dart';
+import 'package:bharat_worker/provider/booking_jobs_provider.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+
+// Use the navigator key from API service
 
 late ChatServices chatServices;
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize WebView platform
+  if (Platform.isAndroid) {
+    WebViewPlatform.instance = AndroidWebViewPlatform();
+  } else if (Platform.isIOS) {
+    WebViewPlatform.instance = WebKitWebViewPlatform();
+  }
 
   try {
     if (Platform.isAndroid) {
@@ -52,18 +76,10 @@ void main() async{
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }
+
   final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
   final FirebaseStorage firebaseStorage = FirebaseStorage.instance;
-  // For Android & iOS: Set bar colors and icon brightness
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      statusBarBrightness: Brightness.dark, // iOS specific
-      systemNavigationBarColor: Colors.white, // Android specific
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
+
   runApp(
     MultiProvider(
       providers: [
@@ -76,6 +92,11 @@ void main() async{
         ChangeNotifierProvider(create: (_) => QuizProvider()),
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+        ChangeNotifierProvider(create: (_) => SubscriptionManagementProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => MessageProvider()),
+        ChangeNotifierProvider(create: (_) => ActiveJobsProvider()),
+        ChangeNotifierProvider(create: (_) => BookingJobsProvider()),
         ChangeNotifierProvider(
           create: (_) => ChatProvider(
             chatServices: ChatServices(
@@ -84,32 +105,38 @@ void main() async{
             ),
           ),
         ),
-        // Remove Provider<ChatServices> unless you use it elsewhere
       ],
-      child:
-      // DevicePreview(
-      //   enabled: !kReleaseMode,
-      //   builder: (context) => MyApp(), // Wrap your app
-      // ),
-       const MyApp(),
+      child: MyApp(),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _fcmInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_fcmInitialized) {
+      _fcmInitialized = true;
+      final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
+      notificationProvider.initializeFCM(navigatorKey);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    //final themeProvider = Provider.of<ThemeProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
-
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
       child: MaterialApp.router(
         routerConfig: AppRouter.router,
         debugShowCheckedModeBanner: false,
-       // themeMode: themeProvider.themeMode,
         theme: ThemeData(
           brightness: Brightness.light,
           primarySwatch: Colors.green,
@@ -128,6 +155,14 @@ class MyApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
+        builder: (context, child) {
+          return SafeArea(
+            top: false,
+              bottom: true,
+              left: false,
+              right: false,
+              child: child!);
+        },
       ),
     );
   }

@@ -72,7 +72,7 @@ class WorkAddressProvider extends ChangeNotifier {
   // API call logic
   bool isLoading = false;
   String? apiError;
-  Future<bool> workLocationUpdate(BuildContext context) async {
+  Future<bool> workLocationUpdate(BuildContext context,bool isEdit) async {
     ProfileResponse profileResponse = ProfileResponse();
     validateFields();
     if (!isValid) return false;
@@ -98,21 +98,22 @@ class WorkAddressProvider extends ChangeNotifier {
 
       progressLoadingDialog(context, false);
       if(response != null){
-        // print("vrjhjj ...$response");
-
         if (response['success'] == true) {
-          print("response ...${response['success']}");
           profileResponse = ProfileResponse.fromJson(response);
-          print("profileResponse ...${profileResponse.success}");
           PreferencesServices.setPreferencesData(PreferencesServices.profilePendingScreens, profileResponse.data!.partner!.profilePendingScreens);
           await PreferencesServices.saveProfileData(profileResponse);
-          if(profileResponse.data!.partner!.profilePendingScreens == 6){
-            context.go(AppRouter.documentUploadSection);
+          if(!isEdit){
+            if(profileResponse.data!.partner!.profilePendingScreens == 6){
+              context.go(AppRouter.documentUploadSection);
+            }
           }
+
           customToast(context, response['message'].toString());
+          return true;
         }
         else {
           customToast(context, response['message'].toString());
+          return false;
         }
       }
       isLoading = false;
@@ -124,5 +125,15 @@ class WorkAddressProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  clearField(){
+    addressController.clear();
+    countryController.clear();
+    stateController.clear();
+    cityController.clear();
+    pinCodeController.clear();
+    _distance = 0.0;
+    notifyListeners();
   }
 } 

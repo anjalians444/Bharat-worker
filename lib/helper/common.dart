@@ -4,16 +4,21 @@ import 'package:bharat_worker/provider/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+
+class CurrentChat {
+  static String? groupChatId;
+}
 
 commonAppBar(GestureTapCallback onTap, String title, {List<Widget>? actions,Color bg = Colors.white,bool isLeading = true}) {
   return PreferredSize(
-    preferredSize: const Size.fromHeight(54),
+    preferredSize: const Size.fromHeight(64),
     child: Container(
-      padding: EdgeInsets.only(top:10),
+      padding: EdgeInsets.only(top:10,bottom: 10),
       margin: EdgeInsets.symmetric(horizontal: 20),
       child: AppBar(
         surfaceTintColor: Colors.transparent,
-        leadingWidth:isLeading? 44:0,
+        leadingWidth:isLeading? 43:0,
         leading: isLeading? InkWell(
           child: Container(
               decoration: BoxDecoration(
@@ -21,7 +26,7 @@ commonAppBar(GestureTapCallback onTap, String title, {List<Widget>? actions,Colo
                   border: Border.all(color: MyColors.borderColor),
                   borderRadius: BorderRadius.circular(12)
               ),
-              padding: EdgeInsets.all(8),
+              padding: EdgeInsets.all(7),
               child: const Icon(Icons.arrow_back,size: 24,)),
           onTap: () {
             onTap();
@@ -90,7 +95,13 @@ Widget commonProfileImageSection({
               profileProvider.profileImageUrl.isNotEmpty?
                   ClipRRect(
                       borderRadius: BorderRadius.circular(500),
-                      child: Image.network(profileProvider.profileImageUrl)):
+                      child: Image.network(profileProvider.profileImageUrl,
+                          height:100,
+                          width:100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return  Icon(Icons.person, size: 35,color: Colors.white); // Add size if needed
+                          })):
               Icon(Icons.person, size: 60, color: Colors.white)
                   : null,
             ),
@@ -161,5 +172,89 @@ Widget profileInfoCard({
         ),
       ],
     ),
+  );
+}
+
+onlineOfflineButton() {
+  return  Builder(
+    builder: (context) {
+      final isOnline = context.watch<ProfileProvider>().isOnline;
+      return GestureDetector(
+        onTap: () {
+          final RenderBox button = context.findRenderObject() as RenderBox;
+          final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+          final Offset position = button.localToGlobal(Offset.zero, ancestor: overlay);
+
+          showMenu<bool>(
+            context: context,
+            color: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10),
+            ),
+            position: RelativeRect.fromLTRB(
+              position.dx,
+              position.dy + button.size.height, // directly below
+              position.dx + button.size.width,
+              position.dy,
+            ),
+            items: [
+              PopupMenuItem<bool>(
+                height: 28,
+                value: true,
+                child: Row(
+                  children: [
+                    Icon(Icons.circle, size: 8, color: MyColors.greyColor),
+                    SizedBox(width: 5),
+                    Text(
+                      "Online",
+                      style: semiBoldTextStyle(fontSize: 12.0, color: MyColors.greyColor),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem<bool>(
+                height: 28,
+                value: false,
+                child: Row(
+                  children: [
+                    Icon(Icons.circle, size: 8, color: MyColors.greyColor),
+                    SizedBox(width: 5),
+                    Text(
+                      "Offline",
+                      style: semiBoldTextStyle(fontSize: 12.0, color: MyColors.greyColor),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ).then((value) {
+            if (value != null) {
+              context.read<ProfileProvider>().setOnlineStatusWithApi(value, context);
+            }
+          });
+        },
+        child: Container(
+          decoration: BoxDecoration(
+              border: Border.all(color: MyColors.borderColor.withOpacity(0.4)),
+              borderRadius: BorderRadius.circular(5),
+              color: isOnline ? MyColors.greenColor : MyColors.borderColor.withOpacity(0.4)
+          ),
+          padding: EdgeInsets.symmetric(horizontal:5,vertical: 2),
+          child: Row(
+            children: [
+              Icon(Icons.circle, size: 8, color: isOnline ? MyColors.whiteColor : MyColors.greyColor),
+              SizedBox(width: 5),
+              Text(
+                isOnline ? "Online" : "Offline",
+                style: semiBoldTextStyle(
+                  fontSize: 12.0,
+                  color: isOnline ? MyColors.whiteColor : MyColors.greyColor,
+                ),
+              ),
+              Icon(Icons.arrow_drop_down_outlined, size: 22, color: isOnline ? MyColors.whiteColor: MyColors.greyColor),
+            ],
+          ),
+        ),
+      );
+    },
   );
 }

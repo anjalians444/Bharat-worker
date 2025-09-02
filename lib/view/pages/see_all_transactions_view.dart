@@ -8,13 +8,27 @@ import 'package:provider/provider.dart';
 import '../../provider/payment_provider.dart';
 import '../../widgets/transaction_history_card.dart';
 
-class SeeAllTransactionsView extends StatelessWidget {
+class SeeAllTransactionsView extends StatefulWidget {
   const SeeAllTransactionsView({Key? key}) : super(key: key);
+
+  @override
+  State<SeeAllTransactionsView> createState() => _SeeAllTransactionsViewState();
+}
+
+class _SeeAllTransactionsViewState extends State<SeeAllTransactionsView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
+      paymentProvider.fetchTransactionHistory();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final paymentProvider = Provider.of<PaymentProvider>(context);
-    final transactions = paymentProvider.transactions;
+    final transactions = paymentProvider.transactionHistory;
     final languageProvider = Provider.of<LanguageProvider>(context);
     return Scaffold(
       appBar:commonAppBar((){
@@ -36,14 +50,18 @@ class SeeAllTransactionsView extends StatelessWidget {
             )
           ]),
       backgroundColor: MyColors.whiteColor,
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: transactions.length,
-        itemBuilder: (context, index) {
-          final transaction = transactions[index];
-          return TransactionHistoryCard(transaction: transaction);
-        },
-      ),
+      body: paymentProvider.isTransactionLoading
+          ? const Center(child: CircularProgressIndicator())
+          : transactions.isEmpty
+              ? const Center(child: Text('No transactions found'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: transactions.length,
+                  itemBuilder: (context, index) {
+                    final transaction = transactions[index];
+                    return TransactionHistoryCard(transaction: transaction);
+                  },
+                ),
     );
   }
 } 

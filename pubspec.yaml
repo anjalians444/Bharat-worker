@@ -65,7 +65,18 @@ dependencies:
   geocoding: ^2.0.5
   mime: ^1.0.4
   http_parser: ^4.0.2
+  http: ^1.2.0
   file_picker: ^10.2.0
+  flutter_local_notifications: ^19.3.1
+  flutter_dash: ^1.0.0
+  webview_flutter: ^4.7.0
+#  webview_flutter_android: ^4.8.2
+#  webview_flutter_wkwebview: ^3.22.1
+  url_launcher: ^6.2.5
+  flutter_otp_text_field: ^1.5.1+1
+  clipboard: ^2.0.2
+#  phonepe_payment_sdk: ^3.0.0
+
 
 
 

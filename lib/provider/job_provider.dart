@@ -5,11 +5,24 @@ class JobProvider extends ChangeNotifier {
   String? timeSlot;
   String? message;
 
+  // Controllers
+  final TextEditingController budgetController = TextEditingController();
+  final TextEditingController timeSlotController = TextEditingController();
+  final TextEditingController messageController = TextEditingController();
+
   // Extra Work Controllers
   final TextEditingController extraWorkTitleController = TextEditingController();
   final TextEditingController extraWorkDescriptionController = TextEditingController();
   final TextEditingController extraWorkChargesController = TextEditingController();
   final TextEditingController extraWorkTimeTakenController = TextEditingController();
+
+  JobProvider() {
+    // Set default current time
+    final now = DateTime.now();
+    final timeString = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    timeSlotController.text = timeString;
+    timeSlot = timeString;
+  }
 
   void setBudget(String value) {
     budget = value;
@@ -57,6 +70,16 @@ class JobProvider extends ChangeNotifier {
     budget = null;
     timeSlot = null;
     message = null;
+    budgetController.clear();
+    timeSlotController.clear();
+    messageController.clear();
+    
+    // Reset to default current time
+    final now = DateTime.now();
+    final timeString = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    timeSlotController.text = timeString;
+    timeSlot = timeString;
+    
     notifyListeners();
   }
 
@@ -66,5 +89,17 @@ class JobProvider extends ChangeNotifier {
     extraWorkChargesController.clear();
     extraWorkTimeTakenController.clear();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    budgetController.dispose();
+    timeSlotController.dispose();
+    messageController.dispose();
+    extraWorkTitleController.dispose();
+    extraWorkDescriptionController.dispose();
+    extraWorkChargesController.dispose();
+    extraWorkTimeTakenController.dispose();
+    super.dispose();
   }
 } 

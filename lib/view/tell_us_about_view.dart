@@ -1,8 +1,6 @@
 import 'package:bharat_worker/constants/font_style.dart';
 import 'package:bharat_worker/constants/my_colors.dart';
 import 'package:bharat_worker/constants/sized_box.dart';
-import 'package:bharat_worker/models/profile_model.dart';
-import 'package:bharat_worker/services/user_prefences.dart';
 import 'package:bharat_worker/widgets/common_button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -21,38 +19,31 @@ class TellUsAboutView extends StatefulWidget {
 class _TellUsAboutViewState extends State<TellUsAboutView> {
   @override
   void dispose() {
-    Provider.of<ProfileProvider>(context, listen: false).dispose();
+   // Provider.of<ProfileProvider>(context, listen: false).dispose();
     super.dispose();
   }
+
 
   void _onNext(ProfileProvider profileProvider) async {
     if (!profileProvider.validate()) {
       return;
     }
 
-    var response = await profileProvider.updateProfile(context).then((onValue){
+    var response = await profileProvider.updateProfile(context,false).then((onValue){
      // context.push(AppRouter.allCategory);
     });
-    // Navigator.of(context).pop(); // Remove loading
-    // if (response['success'] == true) {
-    //   context.push(AppRouter.allCategory);
-    // } else {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //      SnackBar(content: Text('${response['message']}')),
-    //   );
-   // }
   }
 
   @override
   Widget build(BuildContext context) {
     final profileProvider = Provider.of<ProfileProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
-      profileProvider.getProfileData();
+     // profileProvider.getProfileData();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: commonAppBar(() {
         Navigator.of(context).pop();
-      }, ""),
+      },isLeading: false, ""),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -75,6 +66,7 @@ class _TellUsAboutViewState extends State<TellUsAboutView> {
                 languageProvider: languageProvider,
               ),
               hsized40,
+
               CommonButton(
                 text: languageProvider.translate('next'),
                 onTap: () => _onNext(profileProvider),
@@ -83,7 +75,29 @@ class _TellUsAboutViewState extends State<TellUsAboutView> {
                 width: double.infinity,
                 margin: EdgeInsets.all(0),
               ),
-              hsized20,
+              // hsized20,
+              // Center(
+              //   child: InkWell(
+              //       onTap:  (){
+              //         context.go(AppRouter.allCategory, extra: {
+              //           'isEdit': false,
+              //         },);
+              //       },
+              //       child: Text(languageProvider.translate('skip'),style: semiBoldTextStyle(color:MyColors.greyColor,fontSize: 14.0),)),
+              // ),
+              // CommonButton(
+              //   text: languageProvider.translate('skip'),
+              //   onTap:  (){
+              //     context.go(AppRouter.allCategory, extra: {
+              //       'isEdit': false,
+              //     },);
+              //   },
+              //   backgroundColor: MyColors.lightGreyColor,
+              //   textColor: Colors.black,
+              //   width: double.infinity,
+              //   margin: EdgeInsets.all(0),
+              // ),
+              hsized10,
             ],
           ),
         ),

@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:bharat_worker/enums/register_enum.dart';
 import 'package:bharat_worker/helper/router.dart';
 import 'package:bharat_worker/models/profile_model.dart';
+import 'package:bharat_worker/provider/category_provider.dart';
+import 'package:bharat_worker/provider/profile_provider.dart';
+import 'package:bharat_worker/provider/work_address_provider.dart';
 import 'package:bharat_worker/services/api_paths.dart';
 import 'package:bharat_worker/services/google_sign_services.dart';
 import 'package:bharat_worker/services/user_prefences.dart';
@@ -11,6 +14,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:bharat_worker/services/api_service.dart';
 import 'dart:convert';
+
+import 'package:provider/provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   // Controllers
@@ -26,8 +31,8 @@ class AuthProvider extends ChangeNotifier {
   bool _isGoogleSignInLoading = false;
   bool get isGoogleSignInLoading => _isGoogleSignInLoading;
   bool _isVerifyingOtp = false;
-   bool get isVerifyingOtp => _isVerifyingOtp;
-  ProfileResponse _profileResponse= ProfileResponse();
+  bool get isVerifyingOtp => _isVerifyingOtp;
+  ProfileResponse _profileResponse = ProfileResponse();
   ProfileResponse get profileResponse => _profileResponse;
 
   Country? _selectedCountry = Country(
@@ -50,7 +55,7 @@ class AuthProvider extends ChangeNotifier {
   int? _resendToken;
   String? firebaseError;
   String _otp = "";
-  String? _otpError ;
+  String? _otpError;
 
   // Firebase token management
   StreamSubscription<User?>? _tokenSubscription;
@@ -95,10 +100,12 @@ class AuthProvider extends ChangeNotifier {
 
   // 🔁 Start listening to token refresh
   void startTokenListener() {
-    _tokenSubscription = FirebaseAuth.instance.idTokenChanges().listen((User? user) async {
+    _tokenSubscription =
+        FirebaseAuth.instance.idTokenChanges().listen((User? user) async {
       if (user != null) {
         _idToken = await user.getIdToken();
-         PreferencesServices.setPreferencesData(PreferencesServices.idToken, _idToken);
+        PreferencesServices.setPreferencesData(
+            PreferencesServices.idToken, _idToken);
         print("🟢 ID token refreshed: $_idToken");
       } else {
         _idToken = null;
@@ -125,11 +132,12 @@ class AuthProvider extends ChangeNotifier {
     isLoading = true;
     firebaseError = null;
     notifyListeners();
-    final String phone = '+${_selectedCountry?.phoneCode ?? '91'}${phoneController.text.trim()}';
+    final String phone =
+        '+${_selectedCountry?.phoneCode ?? '91'}${phoneController.text.trim()}';
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phone,
-        timeout: const Duration(seconds: 60),
+        timeout: const Duration(seconds: 30),
         verificationCompleted: (PhoneAuthCredential credential) async {
           await FirebaseAuth.instance.signInWithCredential(credential);
           isLoading = false;
@@ -139,7 +147,8 @@ class AuthProvider extends ChangeNotifier {
           firebaseError = e.message;
           isLoading = false;
           notifyListeners();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message!)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(e.message!)));
         },
         codeSent: (String verificationId, int? resendToken) {
           _verificationId = verificationId;
@@ -148,7 +157,8 @@ class AuthProvider extends ChangeNotifier {
           isLoading = false;
           notifyListeners();
           if (context.mounted) context.push(AppRouter.otpVerify);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Code sent")));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text("Code sent")));
         },
         codeAutoRetrievalTimeout: (String verificationId) {
           _verificationId = verificationId;
@@ -161,13 +171,13 @@ class AuthProvider extends ChangeNotifier {
       firebaseError = e.toString();
       isLoading = false;
       notifyListeners();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(firebaseError!)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(firebaseError!)));
     }
   }
 
   // 🔑 Verify OTP
-  Future<bool> verifyOtp(BuildContext context,String otp) async {
-
+  Future<bool> verifyOtp(BuildContext context, String otp) async {
     if (_verificationId == null) {
       setOtpError('Verification ID missing. Please try again.');
       return false;
@@ -185,59 +195,13 @@ class AuthProvider extends ChangeNotifier {
       if (user != null) {
         _idToken = await user.getIdToken();
         print("_idToken....$_idToken");
-        PreferencesServices.setPreferencesData(PreferencesServices.idToken, _idToken);
-        PreferencesServices.setPreferencesData(PreferencesServices.loginType, LoginType.typePhone.value);
+        PreferencesServices.setPreferencesData(
+            PreferencesServices.idToken, _idToken);
+        PreferencesServices.setPreferencesData(
+            PreferencesServices.loginType, LoginType.typePhone.value);
         // Call login API
-        try {
-          final loginResponse = await ApiService().post(
-            ApiPaths.register,
-            body: {"token": _idToken},
-          );
-          print("loginResponse...$loginResponse");
-          // Parse and save profile
-          if(loginResponse != null){
-            _profile = ProfileResponse(
-              success: loginResponse['success'],
-              message: loginResponse['message'],
-              data: ProfileData.fromJson(loginResponse['data'])
-            );
-            print("profile....${_profile!.data!.partner!.category!.length}");
-
-            if(_profile!.success == true){
-              PreferencesServices.setPreferencesData(PreferencesServices.isLogin, true);
-              _profileResponse = _profile!;
-              notifyListeners();
-              await PreferencesServices.saveProfileData(_profile!);
-              print("Saved profile: "+jsonEncode(_profile!.toJson()));
-              PreferencesServices.setPreferencesData(PreferencesServices.userToken, _profile!.data!.token.toString());
-              PreferencesServices.setPreferencesData(PreferencesServices.profilePendingScreens, _profile!.data!.partner!.profilePendingScreens);
-            int? profilePendingScreens = _profile!.data!.partner!.profilePendingScreens;
-              notifyListeners();
-            print("profileCompletion..$profilePendingScreens");
-             if(profilePendingScreens == 1){
-             context.go(AppRouter.tellUsAbout);
-             } else if(profilePendingScreens == 2){
-               context.go(AppRouter.allCategory, extra: {
-               'isEdit': false,
-               },);
-             }
-             else if(profilePendingScreens == 3){
-               context.go(AppRouter.workAddress);
-             }else if(profilePendingScreens == 0){
-               context.go(AppRouter.dashboard);
-             }
-            }
-
-          }
-        return _profile!.success == true?true:false;
-
-        } catch (apiError) {
-          firebaseError = 'Login API failed: ' + apiError.toString();
-          setOtpError(firebaseError);
-          _isVerifyingOtp = false;
-          notifyListeners();
-          return false;
-        }
+        bool loginResponse = await signUpApi(context, _idToken.toString());
+        return loginResponse;
       }
       _isVerifyingOtp = false;
       notifyListeners();
@@ -260,7 +224,8 @@ class AuthProvider extends ChangeNotifier {
     isLoading = true;
     firebaseError = null;
     notifyListeners();
-    final String phone = '+${_selectedCountry?.phoneCode ?? '91'}${phoneController.text.trim()}';
+    final String phone =
+        '+${_selectedCountry?.phoneCode ?? '91'}${phoneController.text.trim()}';
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phone,
@@ -301,8 +266,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await GoogleSignInServices().googleSignup(context, this);
-      startTokenListener(); // ✅ Add this if Google login also used
-      PreferencesServices.setPreferencesData(PreferencesServices.loginType, LoginType.typePhone.value);
+      //final user = FirebaseAuth.instance.currentUser;
+      // if (user != null) {
+      //   // Call the Google sign-up API with required payload
+      //   await googleSignUpApi(context, user);
+      // }
+      //startTokenListener(); // ✅ Add this if Google login also used
+      //   PreferencesServices.setPreferencesData(PreferencesServices.loginType, LoginType.typePhone.value);
     } catch (e) {
       print("Google Sign-In Error: $e");
     } finally {
@@ -311,12 +281,80 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-     // Facebook login logic
+  // Call API after Google sign-in
+  Future<void> googleSignUpApi(BuildContext context, User user) async {
+    try {
+      final payload = {
+        "uid": user.uid ?? "",
+        "name": user.displayName ?? "",
+        "email": user.email ?? "",
+        "phone": user.phoneNumber ?? "",
+        "profile": user.photoURL ?? ""
+      };
+      final response = await ApiService().post1(
+        ApiPaths.partnerGoogleAuth,
+        body: payload,
+        isToken: false, // No token needed for registration
+      );
+      print("response['success']...${response['success']}");
+      // Handle response as needed (similar to signUpApi)
+      if (response != null && response['success'] == true) {
+        _profile = ProfileResponse(
+            success: response['success'],
+            message: response['message'],
+            data: ProfileData.fromJson(response['data']));
+        print("response['success']...${response}");
+        PreferencesServices.setPreferencesData(
+            PreferencesServices.isLogin, true);
+        _profileResponse = _profile!;
+        notifyListeners();
+        await PreferencesServices.saveProfileData(_profile!);
+        PreferencesServices.setPreferencesData(
+            PreferencesServices.userToken, _profile!.data!.token.toString());
+        PreferencesServices.setPreferencesData(
+            PreferencesServices.profilePendingScreens,
+            _profile!.data!.partner!.profilePendingScreens);
+
+        print(
+            " _profile!.data!.partner!.profilePendingScreens..${_profile!.data!.partner!.profilePendingScreens}");
+        int? profilePendingScreens =
+            _profile!.data!.partner!.profilePendingScreens;
+        notifyListeners();
+        if (profilePendingScreens == 1) {
+          context.go(AppRouter.tellUsAbout);
+        } else if (profilePendingScreens == 2) {
+          context.go(
+            AppRouter.allCategory,
+            extra: {
+              'isEdit': false,
+            },
+          );
+        } else if (profilePendingScreens == 5) {
+          context.go(AppRouter.workAddress);
+        } else if (profilePendingScreens == 6) {
+          context.go(AppRouter.documentUploadSection);
+        } else if (profilePendingScreens == 0) {
+          context.go(AppRouter.dashboard);
+        }
+      } else {
+        firebaseError = response != null
+            ? response['message']
+            : 'Google Sign Up API failed';
+        notifyListeners();
+      }
+    } catch (apiError) {
+      firebaseError = 'Google Sign Up API failed: ' + apiError.toString();
+      notifyListeners();
+    }
+  }
+
+  // Facebook login logic
   Future<void> loginWithFacebook(BuildContext context) async {
     isLoading = true;
     notifyListeners();
     await Future.delayed(const Duration(seconds: 2));
-    PreferencesServices.setPreferencesData(PreferencesServices.loginType,LoginType.loginTypeFacebook.value);
+    PreferencesServices.setPreferencesData(
+        PreferencesServices.loginType, LoginType.loginTypeFacebook.value);
     isLoading = false;
     notifyListeners();
     // TODO: Handle Facebook login
@@ -324,13 +362,35 @@ class AuthProvider extends ChangeNotifier {
 
   // 🚪 Logout
   Future<void> logout(BuildContext context) async {
+    String loginType = await PreferencesServices.getPreferencesData(
+        PreferencesServices.loginType);
+    if (loginType == LoginType.loginTypeGoogle.value) {
+      GoogleSignInServices().logoutFromGoogle();
+    } else if (loginType == LoginType.typePhone) {
+      await FirebaseAuth.instance.signOut();
+    }
     stopTokenListener(); // ✅ Stop listener
     PreferencesServices.setPreferencesData(PreferencesServices.isLogin, false);
     PreferencesServices.setPreferencesData(PreferencesServices.userToken, null);
     PreferencesServices.setPreferencesData(PreferencesServices.userId, null);
-    await PreferencesServices.saveProfileData(ProfileResponse());
-    await FirebaseAuth.instance.signOut();
+    PreferencesServices.removeProfileData();
     isLoading = false;
+    _isVerifyingOtp = false;
+    phoneController.clear();
+    final profileProvider =
+        Provider.of<ProfileProvider>(context, listen: false);
+    final categoryProvider =
+        Provider.of<CategoryProvider>(context, listen: false);
+    final workProvider =
+        Provider.of<WorkAddressProvider>(context, listen: false);
+    categoryProvider.selectedCategoryIds.clear();
+    categoryProvider.selectedSubCategoryIds.clear();
+    profileProvider.clearAllControllers();
+    categoryProvider.clear();
+    // categoryProvider.clearSelections();
+    workProvider.clearField();
+    notifyListeners();
+
     notifyListeners();
   }
 
@@ -362,7 +422,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> checkLoginStatus() async {
-    final isLoggedIn = await PreferencesServices.getPreferencesData(PreferencesServices.isLogin);
+    final isLoggedIn = await PreferencesServices.getPreferencesData(
+        PreferencesServices.isLogin);
     return isLoggedIn == true;
   }
 
@@ -372,331 +433,60 @@ class AuthProvider extends ChangeNotifier {
     stopTokenListener(); // Clean up listener
     super.dispose();
   }
+
+  Future<bool> signUpApi(BuildContext context, String idToken) async {
+    try {
+      final loginResponse = await ApiService()
+          .post1(ApiPaths.register, body: {"token": idToken}, isToken: false);
+      // Parse and save profile
+      if (loginResponse != null) {
+        _profile = ProfileResponse(
+            success: loginResponse['success'],
+            message: loginResponse['message'],
+            data: ProfileData.fromJson(loginResponse['data']));
+        print("profile....${_profile!.data!.partner!.category!.length}");
+
+        if (_profile!.success == true) {
+          PreferencesServices.setPreferencesData(
+              PreferencesServices.isLogin, true);
+          _profileResponse = _profile!;
+          notifyListeners();
+          await PreferencesServices.saveProfileData(_profile!);
+          PreferencesServices.setPreferencesData(
+              PreferencesServices.userToken, _profile!.data!.token.toString());
+          PreferencesServices.setPreferencesData(
+              PreferencesServices.profilePendingScreens,
+              _profile!.data!.partner!.profilePendingScreens);
+          int? profilePendingScreens =
+              _profile!.data!.partner!.profilePendingScreens;
+
+          notifyListeners();
+          if (profilePendingScreens == 1) {
+            context.go(AppRouter.tellUsAbout);
+          } else if (profilePendingScreens == 2) {
+            context.go(
+              AppRouter.allCategory,
+              extra: {
+                'isEdit': false,
+              },
+            );
+          } else if (profilePendingScreens == 5) {
+            context.go(AppRouter.workAddress);
+          } else if (profilePendingScreens == 6) {
+            context.go(AppRouter.documentUploadSection);
+          } else if (profilePendingScreens == 0) {
+            context.go(AppRouter.dashboard);
+          }
+        }
+      }
+      return _profile!.success == true ? true : false;
+    } catch (apiError) {
+      print("apiError....${apiError.toString()}");
+      firebaseError = 'Login API failed: ' + apiError.toString();
+      setOtpError(firebaseError);
+      _isVerifyingOtp = false;
+      notifyListeners();
+      return false;
+    }
+  }
 }
-
-
-
-
-// import 'package:bharat_worker/enums/register_enum.dart';
-// import 'package:bharat_worker/helper/router.dart';
-// import 'package:bharat_worker/services/google_sign_services.dart';
-// import 'package:bharat_worker/services/user_prefences.dart';
-// import 'package:flutter/material.dart';
-// import 'package:country_picker/country_picker.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:go_router/go_router.dart';
-//
-// class AuthProvider extends ChangeNotifier {
-//   // Controllers
-//   final TextEditingController phoneController = TextEditingController();
-//
-//   // Validation error
-//   String? phoneError;
-//
-//   // Loading state
-//   bool isLoading = false;
-//
-//   // Google Sign-In loading state
-//   bool _isGoogleSignInLoading = false;
-//   bool get isGoogleSignInLoading => _isGoogleSignInLoading;
-//
-//   Country? _selectedCountry = Country(
-//     phoneCode: '91',
-//     countryCode: 'IN',
-//     e164Sc: 91,
-//     geographic: true,
-//     level: 1,
-//     name: 'India',
-//     example: '9876543210',
-//     displayName: 'India (IN) [+91]',
-//     displayNameNoCountryCode: 'India (IN)',
-//     e164Key: '91-IN-0',
-//   );
-//   String _title = "Welcome to Bharat Worker";
-//   bool _isLoginView = true;
-//
-//   // Firebase phone auth state
-//   String? _verificationId;
-//   int? _resendToken;
-//   bool _isVerifyingOtp = false;
-//   String? firebaseError;
-//   String _otp = "";
-//   String? _otpError ;
-//
-//   String? get verificationId => _verificationId;
-//   int? get resendToken => _resendToken;
-bool _isVerifyingOtp = false;
-//   bool get isVerifyingOtp => _isVerifyingOtp;
-//   String? get firebaseErrorMsg => firebaseError;
-//
-//   Country? get selectedCountry => _selectedCountry;
-//   bool? get isLoginView => _isLoginView;
-//   String get title => _title;
-//   String get otp => _otp;
-//   String? get otpError => _otpError;
-//
-//   void setSelectedCountry(Country country) {
-//     _selectedCountry = country;
-//     notifyListeners();
-//   }
-//
-//   void setTitle(String title) {
-//     _title = title;
-//     notifyListeners();
-//   }
-//
-//   String? validatePhone(String phone) {
-//     if (_selectedCountry == null) return "Select country";
-//     if (_selectedCountry!.phoneCode == "91") {
-//       if (!RegExp(r'^[6-9]\d{9} ?$').hasMatch(phone)) {
-//         return "Enter valid Indian number";
-//       }
-//     } else if (_selectedCountry!.phoneCode == "1") {
-//       if (!RegExp(r'^\d{3}-\d{3}-\d{4}$').hasMatch(phone)) {
-//         return "Enter valid US number";
-//       }
-//     } else if (phone.isEmpty || phone.length < 6) {
-//       return "Enter valid phone number";
-//     }
-//     return null;
-//   }
-//
-//   // Phone login logic using Firebase
-//   Future<void> loginWithPhone(BuildContext context) async {
-//     String? error = validatePhone(phoneController.text.trim());
-//     if (error != null) {
-//       setPhoneError(error);
-//       return;
-//     }
-//     isLoading = true;
-//     firebaseError = null;
-//     notifyListeners();
-//     final String phone = '+${_selectedCountry?.phoneCode ?? '91'}${phoneController.text.trim()}';
-//     try {
-//       await FirebaseAuth.instance.verifyPhoneNumber(
-//         phoneNumber: phone,
-//         timeout: const Duration(seconds: 60),
-//         verificationCompleted: (PhoneAuthCredential credential) async {
-//           print(credential.token);
-//           print(credential.verificationId);
-//           print(credential.accessToken);
-//
-//           // Auto-retrieval or instant verification
-//           await FirebaseAuth.instance.signInWithCredential(credential).then((onValue){
-//
-//           });
-//           isLoading = false;
-//           notifyListeners();
-//         },
-//         verificationFailed: (FirebaseAuthException e) {
-//           firebaseError = e.message;
-//           isLoading = false;
-//           notifyListeners();
-//           ScaffoldMessenger.of(context).showSnackBar(
-//             SnackBar(content: Text(e.message!)),
-//           );
-//         },
-//         codeSent: (String verificationId, int? resendToken) {
-//           _verificationId = verificationId;
-//           firebaseError = null;
-//           print("_verificationId...$_verificationId");
-//           if (context.mounted) context.push(AppRouter.otpVerify);
-//           _resendToken = resendToken;
-//           isLoading = false;
-//           notifyListeners();
-//           ScaffoldMessenger.of(context).showSnackBar(
-//             SnackBar(content: Text("Code sent")),
-//           );
-//         },
-//         codeAutoRetrievalTimeout: (String verificationId) {
-//           _verificationId = verificationId;
-//           print("codeAutoRetrievalTimeout...$_verificationId");
-//           firebaseError = null;
-//           isLoading = false;
-//           notifyListeners();
-//         },
-//         forceResendingToken: _resendToken,
-//       );
-//
-//       if(firebaseError != null){
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text(firebaseError!)),
-//         );
-//       }
-//
-//
-//     } catch (e) {
-//       firebaseError = e.toString();
-//       isLoading = false;
-//       notifyListeners();
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text(firebaseError!)),
-//       );
-//     }
-//   }
-//
-//   // Google login logic
-//   Future<void> loginWithGoogle(BuildContext context) async {
-//     isLoading = true;
-//     notifyListeners();
-//     try {
-//
-//       await GoogleSignInServices().googleSignup(context, this);
-//       PreferencesServices.setPreferencesData(PreferencesServices.loginType,LoginType.loginTypeGoogle.value);
-//
-//     } catch (e) {
-//       // Handle error if needed
-//     } finally {
-//       isLoading = false;
-//       notifyListeners();
-//     }
-//   }
-//
-//   // Facebook login logic
-//   Future<void> loginWithFacebook(BuildContext context) async {
-//     isLoading = true;
-//     notifyListeners();
-//     await Future.delayed(const Duration(seconds: 2));
-//     PreferencesServices.setPreferencesData(PreferencesServices.loginType,LoginType.loginTypeFacebook.value);
-//     isLoading = false;
-//     notifyListeners();
-//     // TODO: Handle Facebook login
-//   }
-//
-//   void setPhoneError(String? error) {
-//     phoneError = error;
-//     notifyListeners();
-//   }
-//
-//   @override
-//   void dispose() {
-//     phoneController.dispose();
-//     super.dispose();
-//   }
-//
-//   void setLogin(bool login) {
-//     _isLoginView = login;
-//     notifyListeners();
-//   }
-//
-//   void setOtp(String value) {
-//     _otp = value;
-//     notifyListeners();
-//   }
-//
-//   void setOtpError(String? error) {
-//     _otpError = error.toString();
-//     notifyListeners();
-//   }
-//
-//   void clearOtp() {
-//     _otp = '';
-//     _otpError = null;
-//     notifyListeners();
-//   }
-//
-//   // Verify OTP using Firebase
-//   Future<bool> verifyOtp(String otp) async {
-//     if (_verificationId == null) {
-//       setOtpError('Verification ID missing. Please try again.');
-//       return false;
-//     }
-//     _isVerifyingOtp = true;
-//     firebaseError = null;
-//     notifyListeners();
-//     try {
-//       final credential = PhoneAuthProvider.credential(
-//         verificationId: _verificationId!,
-//         smsCode: otp,
-//       );
-//       await FirebaseAuth.instance.signInWithCredential(credential);
-//       // Print the ID token after successful sign in
-//       final user = FirebaseAuth.instance.currentUser;
-//       if (user != null) {
-//         final idToken = await user.getIdToken();
-//         print('ID Token: ' + idToken.toString());
-//         PreferencesServices.setPreferencesData(PreferencesServices.loginType,LoginType.typePhone.value);
-//         PreferencesServices.setPreferencesData(PreferencesServices.userToken,idToken.toString());
-//       }
-//       _isVerifyingOtp = false;
-//       notifyListeners();
-//       return true;
-//     } on FirebaseAuthException catch (e) {
-//       firebaseError = e.message;
-//       setOtpError(e.message);
-//       _isVerifyingOtp = false;
-//       notifyListeners();
-//       return false;
-//     } catch (e) {
-//       firebaseError = e.toString();
-//       setOtpError(e.toString());
-//       _isVerifyingOtp = false;
-//       notifyListeners();
-//       return false;
-//     }
-//   }
-//
-//   // Resend OTP
-//   Future<void> resendOtp() async {
-//     if (phoneController.text.trim().isEmpty) {
-//       setPhoneError('Enter phone number');
-//       return;
-//     }
-//     isLoading = true;
-//     firebaseError = null;
-//     notifyListeners();
-//     final String phone = '+${_selectedCountry?.phoneCode ?? '91'}${phoneController.text.trim()}';
-//     try {
-//       await FirebaseAuth.instance.verifyPhoneNumber(
-//         phoneNumber: phone,
-//         timeout: const Duration(seconds: 60),
-//         verificationCompleted: (PhoneAuthCredential credential) async {
-//           await FirebaseAuth.instance.signInWithCredential(credential);
-//           isLoading = false;
-//           notifyListeners();
-//         },
-//         verificationFailed: (FirebaseAuthException e) {
-//           firebaseError = e.message;
-//           isLoading = false;
-//           notifyListeners();
-//         },
-//         codeSent: (String verificationId, int? resendToken) {
-//           _verificationId = verificationId;
-//           _resendToken = resendToken;
-//           isLoading = false;
-//           notifyListeners();
-//         },
-//         codeAutoRetrievalTimeout: (String verificationId) {
-//           _verificationId = verificationId;
-//           isLoading = false;
-//           notifyListeners();
-//         },
-//         forceResendingToken: _resendToken,
-//       );
-//     } catch (e) {
-//       firebaseError = e.toString();
-//       isLoading = false;
-//       notifyListeners();
-//     }
-//   }
-//
-//   void setGoogleSignInLoading(bool isLoading) {
-//     _isGoogleSignInLoading = isLoading;
-//     notifyListeners();
-//   }
-//
-//   // Check if user is logged in (for splash)
-//   Future<bool> checkLoginStatus() async {
-//     final isLoggedIn = await PreferencesServices.getPreferencesData(PreferencesServices.isLogin);
-//     return isLoggedIn == true;
-//   }
-//
-//   // Logout method
-//   Future<void> logout(BuildContext context) async {
-//     PreferencesServices.setPreferencesData(PreferencesServices.isLogin, false);
-//     PreferencesServices.setPreferencesData(PreferencesServices.userToken, null);
-//     PreferencesServices.setPreferencesData(PreferencesServices.userId, null);
-//     isLoading = false;
-//     notifyListeners();
-//   }
-// }

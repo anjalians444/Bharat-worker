@@ -26,21 +26,21 @@ void customToast(BuildContext context, String msg) {
 final overlay = Overlay.of(context);
 final overlayEntry = OverlayEntry(
   builder: (context) => Positioned(
-    top: MediaQuery.of(context).size.height * 0.81, // Customize this value to adjust the position
-    left: MediaQuery.of(context).size.width * 0.1, // Centering the toast
-    right: MediaQuery.of(context).size.width * 0.1, // Centering the toast
+    top: MediaQuery.of(context).size.height * 0.8, // Customize this value to adjust the position
+    left: MediaQuery.of(context).size.width * 0.05, // Centering the toast
+    right: MediaQuery.of(context).size.width * 0.05, // Centering the toast
     child: Material(
       color: Colors.transparent,
       child: Container(
         alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+        padding:  EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
         decoration: BoxDecoration(
           color: MyColors.appTheme,
           borderRadius: BorderRadius.circular(8.0),
         ),
         child: Text(
           msg,
-          style: const TextStyle(color: Colors.white, fontSize: 16.0),
+          style: const TextStyle(color: Colors.white, fontSize: 14.0),
         ),
       ),
     ),

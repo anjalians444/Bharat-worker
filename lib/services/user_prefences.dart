@@ -61,6 +61,11 @@ class PreferencesServices {
     return prefs.remove(key);
   }
 
+  static Future<bool> clearPreferencesData(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.remove(key);
+  }
+
 
   ///---------------------Clear all Data------------------------
 
@@ -96,6 +101,11 @@ class PreferencesServices {
     final jsonString = prefs.getString(profileDataKey);
     if (jsonString == null) return null;
     return ProfileResponse.fromJson(jsonDecode(jsonString));
+  }
+
+  static removeProfileData()async{
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('profile_data'); // replace with actual key
   }
 
   static Map<String, dynamic> _profileToJson(ProfileResponse profile) {
@@ -145,12 +155,18 @@ class PreferencesServices {
           'serviceAreaDistance': profile.data!.partner!.serviceAreaDistance,
           'isSuspended': profile.data!.partner!.isSuspended,
           'category': profile.data!.partner!.category,
-          'subCategory': profile.data!.partner!.subCategory,
+          'services': profile.data!.partner!.services,
           'categoryType': profile.data!.partner!.categoryType,
           'profileCompletion': profile.data!.partner!.profileCompletion,
           'skills': profile.data!.partner!.skills?.map((e) => e.toJson()).toList(),
           '__v': profile.data!.partner!.v,
           'referralCode': profile.data!.partner!.referralCode,
+          'referralPoints': profile.data!.partner!.referralPoints,
+          'totalExperience': profile.data!.partner!.totalExperience,
+          'waitingForApproval': profile.data!.partner!.waitingForApproval,
+          'subscriptionExpiresAt': profile.data!.partner!.subscriptionExpiresAt,
+          'activeSubscriptionPlan': profile.data!.partner!.activeSubscriptionPlan,
+          'isSubscriptionPlaneActive': profile.data!.partner!.isSubscriptionPlaneActive,
         } : null,
       } : null,
     };

@@ -3,13 +3,11 @@ import 'package:bharat_worker/constants/font_style.dart';
 import 'package:bharat_worker/constants/my_colors.dart';
 import 'package:bharat_worker/constants/sized_box.dart';
 import 'package:bharat_worker/helper/common.dart';
-import 'package:bharat_worker/helper/router.dart';
 import 'package:bharat_worker/provider/language_provider.dart';
 import 'package:bharat_worker/provider/auth_provider.dart';
 import 'package:bharat_worker/widgets/common_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'dart:core';
 import 'package:country_picker/country_picker.dart';
@@ -68,33 +66,37 @@ class _LoginViewState extends State<LoginView> {
                       border: Border.all(color: Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: InkWell(
-                      onTap: () {
-                        showCountryPicker(
-                          context: context,
-                          showPhoneCode: true,
-                          onSelect: (country) {
-                            authProvider.setSelectedCountry(country);
-                          },
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          children: [
-                            Text(authProvider.selectedCountry?.flagEmoji ?? '🇮🇳', style: TextStyle(fontSize: 22)),
-                            const SizedBox(width: 8),
-                            Text(
-                              '+${authProvider.selectedCountry?.phoneCode ?? '91'}',
-                              style: mediumTextStyle(fontSize: 16.0, color: MyColors.blackColor),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(Icons.keyboard_arrow_down, color: Colors.black),
-                          ],
+                    child: Consumer<AuthProvider>(builder: (context, provider, _) {
+                      return InkWell(
+                        onTap: provider.isLoading
+                            ? null
+                            : () {
+                                showCountryPicker(
+                                  context: context,
+                                  showPhoneCode: true,
+                                  onSelect: (country) {
+                                    provider.setSelectedCountry(country);
+                                  },
+                                );
+                              },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              Text(provider.selectedCountry?.flagEmoji ?? '🇮🇳', style: TextStyle(fontSize: 22)),
+                              const SizedBox(width: 8),
+                              Text(
+                                '+${provider.selectedCountry?.phoneCode ?? '91'}',
+                                style: mediumTextStyle(fontSize: 16.0, color: MyColors.blackColor),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.keyboard_arrow_down, color: Colors.black),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    }),
                   ),
                   SizedBox(width: 8),
                   Expanded(
@@ -105,21 +107,24 @@ class _LoginViewState extends State<LoginView> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       alignment: Alignment.center,
-                      child: TextFormField(
-                        controller: authProvider.phoneController,
-                        decoration: InputDecoration(
-                          hintText: authProvider.selectedCountry?.example ?? '0000000000',
-                          hintStyle: regularTextStyle(fontSize: 16.0, color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                          errorText: authProvider.phoneError,
-                        ),
-                        keyboardType: TextInputType.phone,
-                        style: regularTextStyle(fontSize: 16.0, color: MyColors.blackColor),
-                        onChanged: (_) {
-                          authProvider.setPhoneError(null);
-                        },
-                      ),
+                      child: Consumer<AuthProvider>(builder: (context, provider, _) {
+                        return TextFormField(
+                          controller: provider.phoneController,
+                          enabled: !provider.isLoading,
+                          decoration: InputDecoration(
+                            hintText: provider.selectedCountry?.example ?? '0000000000',
+                            hintStyle: regularTextStyle(fontSize: 16.0, color: Colors.grey[400]),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                            errorText: provider.phoneError,
+                          ),
+                          keyboardType: TextInputType.phone,
+                          style: regularTextStyle(fontSize: 16.0, color: MyColors.blackColor),
+                          onChanged: (_) {
+                            provider.setPhoneError(null);
+                          },
+                        );
+                      }),
                     ),
                   ),
                 ],
@@ -185,21 +190,24 @@ class _LoginViewState extends State<LoginView> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   Expanded(
-                    child: _SocialIconButton(
+                    child:   Consumer<AuthProvider>(builder: (context,provider,_){
+                    return _SocialIconButton(
                       icon: MyAssetsPaths.google,
                       label: languageProvider.translate('google'),
-                      onTap: () => authProvider.loginWithGoogle(context),
-                    ),
-                  ),
+                      onTap: () => provider.isLoading? null: authProvider.loginWithGoogle(context),
+                    );
+                  })),
+
                   SizedBox(width: 10,),
 
                   Expanded(
-                    child: _SocialIconButton(
-                      icon: MyAssetsPaths.facebook,
-                      label: languageProvider.translate('facebook'),
-                      onTap: () => authProvider.loginWithFacebook(context),
-                    ),
-                  ),
+                    child:Consumer<AuthProvider>(builder: (context,provider,_) {
+                      return _SocialIconButton(
+                        icon: MyAssetsPaths.facebook,
+                        label: languageProvider.translate('facebook'),
+                        onTap: () => provider.isLoading? null: authProvider.loginWithFacebook(context),
+                      );
+                    })),
                 ],
               ),
 

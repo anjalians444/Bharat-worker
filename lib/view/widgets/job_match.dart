@@ -45,6 +45,79 @@ class JobMatchCard extends StatelessWidget {
     required this.onTap,
   }) : super(key: key);
 
+  Widget _buildImageWidget() {
+    // Check if the iconPath is a network URL
+    if (iconPath.startsWith('http://') || iconPath.startsWith('https://')) {
+      return Image.network(
+        iconPath,
+        height: 24,
+        width: 24,
+        color: MyColors.appTheme,
+        errorBuilder: (context, error, stackTrace) {
+          // Return grey box when image fails to load
+          return Container(
+            height: 24,
+            width: 24,
+            decoration: BoxDecoration(
+              color: Colors.grey[400],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(
+              Icons.image_not_supported,
+              size: 16,
+              color: Colors.grey[600],
+            ),
+          );
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 24,
+            width: 24,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Center(
+              child: SizedBox(
+                height: 12,
+                width: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[600]!),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      // For asset images, use Image.asset with error handling
+      return Image.asset(
+        iconPath,
+        height: 24,
+        width: 24,
+        color: MyColors.appTheme,
+        errorBuilder: (context, error, stackTrace) {
+          // Return grey box when asset image fails to load
+          return Container(
+            height: 24,
+            width: 24,
+            decoration: BoxDecoration(
+              color: Colors.grey[400],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(
+              Icons.image_not_supported,
+              size: 16,
+              color: Colors.grey[600],
+            ),
+          );
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -76,12 +149,7 @@ class JobMatchCard extends StatelessWidget {
                     color: Colors.blue[50],
                     borderRadius: BorderRadius.circular(100),
                   ),
-                  child: Image.asset(
-                    iconPath,
-                    height: 24,
-                    width: 24,
-                    color: MyColors.appTheme,
-                  ),
+                  child: _buildImageWidget(),
                 ),
                 SizedBox(width: 6,),
                 Expanded(

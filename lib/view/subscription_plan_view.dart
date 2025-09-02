@@ -1,9 +1,12 @@
+import 'package:bharat_worker/helper/router.dart';
 import 'package:bharat_worker/provider/subscription_provider.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:bharat_worker/constants/font_style.dart';
 import 'package:bharat_worker/constants/my_colors.dart';
 import 'package:bharat_worker/constants/sized_box.dart';
 import 'package:bharat_worker/widgets/common_button.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class SubscriptionPlanView extends StatefulWidget {
@@ -17,6 +20,18 @@ class _SubscriptionPlanViewState extends State<SubscriptionPlanView> {
   bool isMonthly = true;
   int _currentPage = 0;
   final PageController _pageController = PageController(viewportFraction: 0.95);
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresh data when screen is focused
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final subProvider = Provider.of<SubscriptionProvider>(context, listen: false);
+      if (subProvider.error != null && subProvider.plans.isEmpty) {
+        subProvider.fetchSubscriptionPlans();
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -48,25 +63,52 @@ class _SubscriptionPlanViewState extends State<SubscriptionPlanView> {
             ),
           ),
         ),
+        actions: [
+          // Add refresh button in app bar
+          if (subProvider.error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => subProvider.fetchSubscriptionPlans(),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: MyColors.lightGreyColor),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.refresh, color: Colors.black, size: 22),
+                ),
+              ),
+            ),
+        ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await subProvider.fetchSubscriptionPlans();
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Subscription Plan',
-                  style: boldTextStyle(fontSize:26.0, color: MyColors.blackColor, height: 1.2, latterSpace: 0.2, overflow: TextOverflow.ellipsis),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal:20.0),
+                  child: Text(
+                    'Subscription Plan',
+                    style: boldTextStyle(fontSize:26.0, color: MyColors.blackColor,),
+                  ),
                 ),
                 hsized5,
-                Text(
-                  'Choose a plan that fits your goals. Get more job visibility, instant payouts, priority support, and exclusive bonuses.',
-                  style: regularTextStyle(fontSize: 14.0, color: MyColors.lightText, height: 1.5, overflow: TextOverflow.ellipsis),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal:20.0),
+                  child: Text(
+                    'Choose a plan that fits your goals. Get more job visibility, instant payouts, priority support, and exclusive bonuses.',
+                    style: regularTextStyle(fontSize: 14.0, color: MyColors.lightText,),
+                  ),
                 ),
                 hsized20,
-                Row(
+               /* Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _planToggle(),
@@ -84,14 +126,55 @@ class _SubscriptionPlanViewState extends State<SubscriptionPlanView> {
                         ),
                       ),
                   ],
-                ),
-                hsized25,
+                ),*/
+              //  hsized25,
                 if (subProvider.isLoading)
-                  Center(child: CircularProgressIndicator()),
-                if (subProvider.error != null)
-                  Center(child: Text(subProvider.error!, style: TextStyle(color: Colors.red))),
+                  Container(
+                    height: 200,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                if (subProvider.error != null && !subProvider.isLoading)
+                  Container(
+                    height: 200,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.wifi_off,
+                            size: 48,
+                            color: MyColors.color838383,
+                          ),
+                          hsized15,
+                          Text(
+                            'Network Error',
+                            style: regularTextStyle(fontSize: 18.0, color: MyColors.color838383),
+                          ),
+                          hsized10,
+                          // Text(
+                          //   subProvider.error!,
+                          //   style: regularTextStyle(fontSize: 14.0, color: MyColors.color838383),
+                          //   textAlign: TextAlign.center,
+                          // ),
+                           hsized20,
+                          CommonButton(
+                            text: 'Retry',
+                            onTap: () => subProvider.fetchSubscriptionPlans(),
+                            backgroundColor: MyColors.appTheme,
+                            textColor: MyColors.whiteColor,
+                            borderColor: Colors.transparent,
+                            width: 120,
+                            fontSize: 14.0,
+                            borderRadius: 25,
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            margin: const EdgeInsets.all(0),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (!subProvider.isLoading && subProvider.error == null && subProvider.plans.isNotEmpty)
-                  SizedBox(
+                  Container(
                     height: 390,
                     child: PageView.builder(
                       controller: _pageController,
@@ -99,92 +182,141 @@ class _SubscriptionPlanViewState extends State<SubscriptionPlanView> {
                       onPageChanged: (i) => setState(() => _currentPage = i),
                       itemBuilder: (context, int index) {
                         var plan = subProvider.plans[index];
+                        bool isActive = _currentPage == index ;
                         return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: MyColors.appTheme,
+                            color:
+                           // isActive? MyColors.appTheme:
+                            Colors.white,
                             borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(color: MyColors.borderColor,blurRadius: 10)
+                            ]
                           ),
                           padding: const EdgeInsets.all(20),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              if (index == 0)
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: MyColors.yellowColor,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        'Most Popular',
-                                        style: semiBoldTextStyle(fontSize: 12.0, color: MyColors.blackColor),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              if (index == 0) hsized10,
-                              Text(
-                                plan.name,
-                                style: semiBoldTextStyle(fontSize: 20.0, color: MyColors.whiteColor),
-                              ),
-                              hsized10,
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (plan.mrp > plan.price)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom:8.0),
-                                      child: Text(
-                                        '₹${plan.mrp}',
-                                        style: regularTextStyle(fontSize: 20.0, color: MyColors.colorE7E9EE.withOpacity(0.5)).copyWith(decoration: TextDecoration.lineThrough),
-                                      ),
-                                    ),
-                                  wsized10,
+                                  // if (index == 0)
+                                  //   Row(
+                                  //     children: [
+                                  //       Container(
+                                  //         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  //         decoration: BoxDecoration(
+                                  //           color: MyColors.yellowColor,
+                                  //           borderRadius: BorderRadius.circular(8),
+                                  //         ),
+                                  //         child: Text(
+                                  //           'Most Popular',
+                                  //           style: semiBoldTextStyle(fontSize: 12.0, color: MyColors.blackColor),
+                                  //         ),
+                                  //       ),
+                                  //     ],
+                                  //   ),
+                                  // if (index == 0) hsized10,
                                   Text(
-                                    '₹${plan.price}',
-                                    style: boldTextStyle(fontSize: 35.0, color: MyColors.whiteColor),
+                                    plan.name,
+                                    style: semiBoldTextStyle(fontSize: 20.0, color:
+                                  //  isActive?MyColors.whiteColor:
+                                    MyColors.blackColor),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom:8.0),
-                                    child: Text(
-                                      plan.priceType == 'yearly' ? '/year' : '/month',
-                                      style: regularTextStyle(fontSize: 16.0, color: MyColors.whiteColor),
+                                  hsized10,
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      if (plan.mrp > plan.price)
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom:8.0),
+                                          child: Text(
+                                            '₹${plan.mrp}',
+                                            style: regularTextStyle(fontSize: 20.0, color:
+                                            // isActive?MyColors.whiteColor.withOpacity(0.5):
+                                            MyColors.blackColor.withOpacity(0.5)).copyWith(decoration: TextDecoration.lineThrough),
+                                          ),
+                                        ),
+                                      wsized10,
+                                      Text(
+                                        '₹${plan.price}',
+                                        style: boldTextStyle(fontSize: 35.0, color:
+                                        // isActive?MyColors.whiteColor:
+                                        MyColors.blackColor),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom:8.0),
+                                        child: Text(
+                                          plan.priceType == 'yearly' ? '/year' : '/month',
+                                          style: regularTextStyle(fontSize: 16.0, color:
+                                          // isActive?MyColors.whiteColor:
+                                          MyColors.blackColor),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (plan.description != null && plan.description!.isNotEmpty)
+                                    Text(
+                                      plan.description!,
+                                      style: regularTextStyle(fontSize: 14.0, color:
+                                      // !isActive?
+                                      MyColors.color838383)
+                                          // : MyColors.borderColor),
                                     ),
+                                  if (plan.description == null || plan.description!.isEmpty)
+                                    Text(
+                                      'Ideal for growing partners',
+                                      style: regularTextStyle(fontSize: 14.0, color: MyColors.borderColor),
+                                    ),
+                                  hsized12,
+
+
+                        DottedBorder(
+                        dashPattern: [3, 3],
+                        strokeWidth: 1,
+                        color:
+                        // !isActive ?
+                        MyColors.color838383.withOpacity(0.5),
+                            // : MyColors.lightGreyColor.withOpacity(0.3),
+                        customPath: (size) => Path()
+                        ..moveTo(0, 0)
+                        ..lineTo(size.width, 0), // only top line
+                        child: SizedBox(
+                        width: double.infinity,
+                        height: 1, // 1 pixel dotted line
+                        ),
+                        ),
+
+
+                        hsized12,
+                                  Text(
+                                    'Features include:',
+                                    style: regularTextStyle(fontSize: 16.0, color:
+                                    // isActive?MyColors.whiteColor:
+                                    MyColors.blackColor),
                                   ),
+                                  hsized15,
+                                  ...plan.features.map((f) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: _featureRow(f,isActive),
+                                  )),
+
                                 ],
                               ),
-                              if (plan.description != null && plan.description!.isNotEmpty)
-                                Text(
-                                  plan.description!,
-                                  style: regularTextStyle(fontSize: 14.0, color: MyColors.borderColor),
-                                ),
-                              if (plan.description == null || plan.description!.isEmpty)
-                                Text(
-                                  'Ideal for growing partners',
-                                  style: regularTextStyle(fontSize: 14.0, color: MyColors.borderColor),
-                                ),
-                              hsized12,
-                              Divider(color: MyColors.lightGreyColor.withOpacity(0.3)),
-                              hsized12,
-                              Text(
-                                'Features include:',
-                                style: regularTextStyle(fontSize: 16.0, color: MyColors.whiteColor),
-                              ),
-                              hsized15,
-                              ...plan.features.map((f) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _featureRow(f),
-                              )),
                               hsized10,
                               CommonButton(
                                 text: 'Choose ${plan.name}',
-                                onTap: () {},
-                                backgroundColor: MyColors.whiteColor,
-                                textColor: MyColors.appTheme,
+                                onTap: () {
+                                  context.push(AppRouter.paymentTransactionDetail,extra: {"plan":plan});
+                                },
+                                backgroundColor:
+                                // isActive?MyColors.whiteColor:
+                                MyColors.blackColor,
+                                textColor:
+                                // isActive?MyColors.appTheme:
+                                MyColors.whiteColor,
                                 borderColor: Colors.transparent,
                                 width: double.infinity,
                                 fontSize: 16.0,
@@ -271,15 +403,19 @@ class _SubscriptionPlanViewState extends State<SubscriptionPlanView> {
     );
   }
 
-  Widget _featureRow(String text) {
+  Widget _featureRow(String text,bool isActive) {
     return Row(
       children: [
-        Icon(Icons.check, color: MyColors.whiteColor, size:17),
+        Icon(Icons.check, color:
+        // isActive?Colors.white:
+        MyColors.blackColor, size:17),
         wsized10,
         Expanded(
           child: Text(
             text,
-            style: regularTextStyle(fontSize: 14.0, color: MyColors.whiteColor, height: 1.2, overflow: TextOverflow.ellipsis),
+            style: regularTextStyle(fontSize: 14.0, color:
+            // isActive?MyColors.whiteColor:
+            MyColors.blackColor, height: 1.2, overflow: TextOverflow.ellipsis),
           ),
         ),
       ],
@@ -291,7 +427,9 @@ class _SubscriptionPlanViewState extends State<SubscriptionPlanView> {
       width: 10,
       height: 10,
       decoration: BoxDecoration(
-        color: isActive ? MyColors.appTheme : MyColors.lightGreyColor,
+        color:
+        isActive ? MyColors.appTheme :
+        MyColors.lightGreyColor,
         shape: BoxShape.circle,
       ),
     );

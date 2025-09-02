@@ -6,14 +6,22 @@ import 'package:bharat_worker/helper/common.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../provider/notification_provider.dart';
 
 import '../../helper/router.dart';
+import 'package:bharat_worker/models/notification_item.dart';
 
 class NotificationsView extends StatelessWidget {
   const NotificationsView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final notificationProvider = Provider.of<NotificationProvider>(context);
+    if (notificationProvider.notifications.isEmpty) {
+      notificationProvider.loadDemoNotifications();
+    }
+    final notifications = notificationProvider.notifications;
     return Scaffold(
       backgroundColor: MyColors.whiteColor,
       appBar: commonAppBar(
@@ -71,57 +79,4 @@ class NotificationsView extends StatelessWidget {
       ),
     );
   }
-}
-
-class NotificationItem {
-  final String iconPath;
-  final String title;
-  final String subtitle;
-  final String time;
-
-  NotificationItem({
-    required this.iconPath,
-    required this.title,
-    required this.subtitle,
-    required this.time,
-  });
-}
-
-List<NotificationItem> notifications = [
-  NotificationItem(
-    iconPath: MyAssetsPaths.jobAcceptedIcon,
-    title: 'Job Accepted Successfully',
-    subtitle: 'You\'ve accepted Job #1023 - AC Service.',
-    time: '2 mins',
-  ),
-  NotificationItem(
-    iconPath: MyAssetsPaths.paymentReceivedIcon,
-    title: 'Payment Received',
-    subtitle: '₹650 received for Job #1007 - AC Gas Filling.',
-    time: '30 min',
-  ),
-  NotificationItem(
-    iconPath: MyAssetsPaths.jobCancelledIcon,
-    title: 'Job Cancelled',
-    subtitle: 'Job #1023 - AC Service has been cancelled by the customer.',
-    time: '1 hour',
-  ),
-  NotificationItem(
-    iconPath: MyAssetsPaths.newJobRequestIcon,
-    title: 'New Job Request',
-    subtitle: 'New plumbing job request available near you.',
-    time: '1 hour',
-  ),
-  NotificationItem(
-    iconPath: MyAssetsPaths.skillBadgeUnlockedIcon,
-    title: 'Skill Badge Unlocked',
-    subtitle: 'You\'ve earned the "Trusted Plumber" badge!',
-    time: 'Yesterday',
-  ),
-  NotificationItem(
-    iconPath: MyAssetsPaths.profileUpdateReminderIcon,
-    title: 'Profile Update Reminder',
-    subtitle: 'Complete your profile to get more job offers.',
-    time: '2 days',
-  ),
-]; 
+} 

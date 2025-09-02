@@ -110,7 +110,9 @@ class _ExplorePageState extends State<ExplorePage> {
       backgroundColor: Colors.white,
       appBar: commonAppBar(() {
         // Navigator.pop(context);
-      }, 'Explore Jobs', actions: [
+      }, 'Explore Jobs',
+          isLeading: false,
+          actions: [
         InkWell(
           child: Container(
               decoration: BoxDecoration(

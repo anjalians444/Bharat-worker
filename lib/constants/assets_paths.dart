@@ -21,6 +21,7 @@ class MyAssetsPaths{
   static const fillSetting = "assets/icons/fillSetting.svg";
   static const fillBooking = "assets/icons/fillBooking.svg";
   static const booking = "assets/icons/booking.svg";
+  static const location = "assets/icons/location.svg";
 
   static const backArrowIcon = "assets/icons/back_arrow.svg";
   static const notificationIcon = "assets/icons/notification.svg";
@@ -39,6 +40,13 @@ class MyAssetsPaths{
   static const headSet = "assets/icons/headSet.svg";
   static const logout = "assets/icons/logout.svg";
   static const money = "assets/icons/money.svg";
+  static const mySubscription = "assets/icons/mySubscription.svg";
+  static const transactionHistory = "assets/icons/transactionHistory.svg";
+  static const diamond2 = "assets/icons/diamond.svg";
+  static const elite = "assets/icons/elite.svg";
+  static const phonePe = "assets/images/phonePe.svg";
+  static const paymentSuccess = "assets/images/paymentSuccess.svg";
+  static const paymentFailled = "assets/images/paymentFailled.svg";
   static const share = "assets/icons/share.svg";
   static const lockPassword = "assets/icons/lockPassword.svg";
   static const certificate = "assets/icons/certificate.svg";
@@ -61,6 +69,18 @@ class MyAssetsPaths{
   static const withdraw = "assets/icons/withdraw.svg";
   static const moneyFilled = "assets/icons/moneyFilled.svg";
   static const award = "assets/icons/award.svg";
+  static const diamond = "assets/images/diamond.svg";
+  static const approveProfile = "assets/images/approveProfile.svg";
+  static const kycPending = "assets/icons/kycPending.svg";
+  static const user = "assets/icons/user.svg";
+  static const right_arrow = "assets/icons/right_arrow.svg";
+  static const underReview = "assets/icons/underReview.svg";
+  static const userCheck = "assets/icons/userCheck.svg";
+  static const offToggleButton = "assets/icons/offToggleButton.svg";
+  static const onToggleButton = "assets/icons/onToggleButton.svg";
+  static const locationMarker = "assets/icons/locationMarker.png";
+  static const currentLocation = "assets/icons/currentLocation.png";
+  static const expirePlan = "assets/images/expirePlan.svg";
 
   static const blur = "assets/images/blur.png";
   static const topCardBg = "assets/images/topCardBg.png";

@@ -38,26 +38,28 @@ class _SplashViewState extends State<SplashView> {
    print("profileCompletion...$profilePendingScreens");
     await Future.delayed(const Duration(seconds: 2)); // for splash effect
     if (isLoggedIn) {
-      if(profilePendingScreens == 0){
+     // if(profilePendingScreens == 0){
         context.go(AppRouter.dashboard);
-      }else if(profilePendingScreens == 1){
-        context.go(AppRouter.tellUsAbout);
-      }
-      else if(profilePendingScreens == 2){
+     // }
+      // else if(profilePendingScreens == 1){
+      //   context.go(AppRouter.tellUsAbout);
+      // }
+      // else if(profilePendingScreens == 2){
+      //
+      //   context.go(AppRouter.allCategory,extra: {
+      //     'isEdit': false,
+      //   },);
+      // }
+      // else if(profilePendingScreens == 5){
+      //   context.go(AppRouter.workAddress);
+      // }
+      // else if(profilePendingScreens == 6){
+      //   context.go(AppRouter.documentUploadSection);
+      // }
 
-        context.go(AppRouter.allCategory,extra: {
-          'isEdit': false,
-        },);
-      }
-      else if(profilePendingScreens == 5){
-        context.go(AppRouter.workAddress);
-      }else if(profilePendingScreens == 6){
-        context.go(AppRouter.documentUploadSection);
-      }
-
-      else{
-        context.go(AppRouter.loginSignUp);
-      }
+      // else{
+      //   context.go(AppRouter.loginSignUp);
+      // }
 
     } else {
       context.go(AppRouter.onBoarding);

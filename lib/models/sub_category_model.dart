@@ -24,155 +24,110 @@ class SubCategoryModel {
 }
 
 class Data {
-  List<String>? categoryType;
-  List<ServicesTypes>? servicesTypes;
+  List<Services>? services;
 
-  Data({this.categoryType, this.servicesTypes});
+  Data({this.services});
 
   Data.fromJson(Map<String, dynamic> json) {
-    categoryType = json['categoryType'].cast<String>();
-    if (json['servicesTypes'] != null) {
-      servicesTypes = <ServicesTypes>[];
-      json['servicesTypes'].forEach((v) {
-        servicesTypes!.add(new ServicesTypes.fromJson(v));
+    if (json['services'] != null) {
+      services = <Services>[];
+      json['services'].forEach((v) {
+        services!.add(new Services.fromJson(v));
       });
     }
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['categoryType'] = this.categoryType;
-    if (this.servicesTypes != null) {
-      data['servicesTypes'] =
-          this.servicesTypes!.map((v) => v.toJson()).toList();
+    if (this.services != null) {
+      data['services'] = this.services!.map((v) => v.toJson()).toList();
     }
     return data;
   }
 }
 
-class ServicesTypes {
+class Services {
+  List<CategoryTypes>? categorytypes;
+  String? categoryId;
+  String? categoryName;
+  String? image;
+
+  Services({this.categorytypes, this.categoryId, this.categoryName, this.image});
+
+  Services.fromJson(Map<String, dynamic> json) {
+    if (json['categorytypes'] != null) {
+      categorytypes = <CategoryTypes>[];
+      json['categorytypes'].forEach((v) {
+        categorytypes!.add(new CategoryTypes.fromJson(v));
+      });
+    }
+    categoryId = json['categoryId'];
+    categoryName = json['categoryName'];
+    image = json['image'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    if (this.categorytypes != null) {
+      data['categorytypes'] = this.categorytypes!.map((v) => v.toJson()).toList();
+    }
+    data['categoryId'] = this.categoryId;
+    data['categoryName'] = this.categoryName;
+    data['image'] = this.image;
+    return data;
+  }
+}
+
+class CategoryTypes {
+  String? categoryTypeId;
+  String? categoryTypeName;
+  List<ServiceItem>? services;
+
+  CategoryTypes({this.categoryTypeId, this.categoryTypeName, this.services});
+
+  CategoryTypes.fromJson(Map<String, dynamic> json) {
+    categoryTypeId = json['categoryTypeId'];
+    categoryTypeName = json['categoryTypeName'];
+    if (json['services'] != null) {
+      services = <ServiceItem>[];
+      json['services'].forEach((v) {
+        services!.add(new ServiceItem.fromJson(v));
+      });
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['categoryTypeId'] = this.categoryTypeId;
+    data['categoryTypeName'] = this.categoryTypeName;
+    if (this.services != null) {
+      data['services'] = this.services!.map((v) => v.toJson()).toList();
+    }
+    return data;
+  }
+}
+
+class ServiceItem {
   String? sId;
   String? name;
-  String? image;
   String? description;
-  String? status;
-  int? iV;
-  String? createdAt;
-  String? updatedAt;
-  List<Commercial>? commercial;
-  List<Commercial>? industrial;
-  List<Commercial>? residential;
+  bool? isCertificate;
 
-  ServicesTypes(
-      {this.sId,
-        this.name,
-        this.image,
-        this.description,
-        this.status,
-        this.iV,
-        this.createdAt,
-        this.updatedAt,
-        this.commercial,
-        this.industrial,
-        this.residential});
+  ServiceItem({this.sId, this.name, this.description, this.isCertificate});
 
-  ServicesTypes.fromJson(Map<String, dynamic> json) {
+  ServiceItem.fromJson(Map<String, dynamic> json) {
     sId = json['_id'];
     name = json['name'];
-    image = json['image'];
     description = json['description'];
-    status = json['status'];
-    iV = json['__v'];
-    createdAt = json['createdAt'];
-    updatedAt = json['updatedAt'];
-    if (json['commercial'] != null) {
-      commercial = <Commercial>[];
-      json['commercial'].forEach((v) {
-        commercial!.add(new Commercial.fromJson(v));
-      });
-    }
-    if (json['industrial'] != null) {
-      industrial = <Commercial>[];
-      json['industrial'].forEach((v) {
-        industrial!.add(new Commercial.fromJson(v));
-      });
-    }
-    if (json['residential'] != null) {
-      residential = <Commercial>[];
-      json['residential'].forEach((v) {
-        residential!.add(new Commercial.fromJson(v));
-      });
-    }
+    isCertificate = json['isCertificate'];
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['_id'] = this.sId;
     data['name'] = this.name;
-    data['image'] = this.image;
     data['description'] = this.description;
-    data['status'] = this.status;
-    data['__v'] = this.iV;
-    data['createdAt'] = this.createdAt;
-    data['updatedAt'] = this.updatedAt;
-    if (this.commercial != null) {
-      data['commercial'] = this.commercial!.map((v) => v.toJson()).toList();
-    }
-    if (this.industrial != null) {
-      data['industrial'] = this.industrial!.map((v) => v.toJson()).toList();
-    }
-    if (this.residential != null) {
-      data['residential'] = this.residential!.map((v) => v.toJson()).toList();
-    }
-    return data;
-  }
-}
-
-class Commercial {
-  String? sId;
-  String? name;
-  String? typeOfCategory;
-  String? category;
-  String? image;
-  String? status;
-  int? iV;
-  String? createdAt;
-  String? updatedAt;
-
-  Commercial(
-      {this.sId,
-        this.name,
-        this.typeOfCategory,
-        this.category,
-        this.image,
-        this.status,
-        this.iV,
-        this.createdAt,
-        this.updatedAt});
-
-  Commercial.fromJson(Map<String, dynamic> json) {
-    sId = json['_id'];
-    name = json['name'];
-    typeOfCategory = json['typeOfCategory'];
-    category = json['category'];
-    image = json['image'];
-    status = json['status'];
-    iV = json['__v'];
-    createdAt = json['createdAt'];
-    updatedAt = json['updatedAt'];
-  }
-
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['_id'] = this.sId;
-    data['name'] = this.name;
-    data['typeOfCategory'] = this.typeOfCategory;
-    data['category'] = this.category;
-    data['image'] = this.image;
-    data['status'] = this.status;
-    data['__v'] = this.iV;
-    data['createdAt'] = this.createdAt;
-    data['updatedAt'] = this.updatedAt;
+    data['isCertificate'] = this.isCertificate;
     return data;
   }
 }

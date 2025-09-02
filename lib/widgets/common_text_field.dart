@@ -63,6 +63,9 @@ final  Function(String value)? onChanged;
       obscureText: obscureText,
       maxLines: maxLines,
       minLines: minLines,
+      onTapOutside: (_){
+        FocusManager.instance.primaryFocus?.unfocus();
+      },
       style: regularTextStyle(fontSize: 14.0, color:MyColors.darkText),
       decoration: InputDecoration(
         hintText: hintText,

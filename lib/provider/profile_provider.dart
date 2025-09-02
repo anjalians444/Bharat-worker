@@ -3,6 +3,7 @@ import 'package:bharat_worker/constants/all_key.dart';
 import 'package:bharat_worker/constants/assets_paths.dart';
 import 'package:bharat_worker/helper/router.dart';
 import 'package:bharat_worker/helper/utility.dart';
+import 'package:bharat_worker/provider/category_provider.dart';
 import 'package:bharat_worker/services/user_prefences.dart';
 import 'package:bharat_worker/widgets/common_success_dialog.dart';
 import 'package:flutter/material.dart';
@@ -13,16 +14,19 @@ import 'package:bharat_worker/services/api_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:bharat_worker/services/api_paths.dart';
 import 'package:bharat_worker/models/profile_model.dart';
+import 'package:bharat_worker/models/referral_history_model.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:intl/intl.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 
 // CertificateFileModel to manage both local files and URLs for certificates
 class CertificateFileModel {
-  final String? url;      // Uploaded file ka URL
-  final File? file;       // Local file
-  final bool isPdf;       // PDF hai ya nahi
-  final bool isLocal;     // Local file hai ya uploaded URL
+  final String? url; // Uploaded file ka URL
+  final File? file; // Local file
+  final bool isPdf; // PDF hai ya nahi
+  final bool isLocal; // Local file hai ya uploaded URL
 
   CertificateFileModel({
     this.url,
@@ -35,6 +39,7 @@ class CertificateFileModel {
 class ProfileProvider extends ChangeNotifier {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
+  final TextEditingController dob2Controller = TextEditingController();
   final TextEditingController mobileController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   File? profileImage;
@@ -52,6 +57,18 @@ class ProfileProvider extends ChangeNotifier {
   String? imageError;
   String? aadharNumber;
 
+  bool? _waitingForApproval;
+  bool? get waitingForApproval => _waitingForApproval;
+
+  String? _kycRejectionReason;
+  String? get kycRejectionReason => _kycRejectionReason;
+
+  String? _kycStatus;
+  String? get kycStatus => _kycStatus;
+  //
+  // bool? _isOnline;
+  // bool? get isOnline => _isOnline;
+
   File? get frontImage => _frontImage;
   File? get backImage => _backImage;
   String? get frontImageUrl => _frontImageUrl;
@@ -64,13 +81,20 @@ class ProfileProvider extends ChangeNotifier {
   ProfileResponse? get profileResponse => _profileResponse;
   PartnerModel? get partner => _partner;
   UserModel? get user => _user;
-  double get profileCompletionPercent => _profileCompletionPercent;
- // String? get aadharNumber => _aadharNumber;
-  double _profileCompletionPercent = 0.7;
-  set profileCompletionPercent(double value) {
-    _profileCompletionPercent = value;
-    notifyListeners();
+  double? _profileCompletionPercent;
+  bool? _isLoader;
+  bool? get isLoader => _isLoader;
+  double? get profileCompletionPercent {
+    if (_partner != null && _partner!.profileCompletion != null) {
+      return (_partner!.profileCompletion! / 100.0).clamp(0.0, 1.0);
+    }
+    return _profileCompletionPercent;
   }
+  // Remove the setter for profileCompletionPercent (now backend-driven)
+  // set profileCompletionPercent(double value) {
+  //   _profileCompletionPercent = value;
+  //   notifyListeners();
+  // }
 
   // Experience certificate files
   List<File> _experienceCertificates = [];
@@ -84,17 +108,17 @@ class ProfileProvider extends ChangeNotifier {
   void refreshCertificateFiles() {
     _certificateFiles = [
       ...licenseFilesUrl.map((url) => CertificateFileModel(
-        url: url,
-        file: null,
-        isPdf: url.toLowerCase().endsWith('.pdf'),
-        isLocal: false,
-      )),
+            url: url,
+            file: null,
+            isPdf: url.toLowerCase().endsWith('.pdf'),
+            isLocal: false,
+          )),
       ...licenseFiles.map((file) => CertificateFileModel(
-        url: null,
-        file: file,
-        isPdf: file.path.toLowerCase().endsWith('.pdf'),
-        isLocal: true,
-      )),
+            url: null,
+            file: file,
+            isPdf: file.path.toLowerCase().endsWith('.pdf'),
+            isLocal: true,
+          )),
     ];
     notifyListeners();
   }
@@ -159,7 +183,10 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   // Get only local files for upload
-  List<File> get filesToUpload => _certificateFiles.where((c) => c.isLocal && c.file != null).map((c) => c.file!).toList();
+  List<File> get filesToUpload => _certificateFiles
+      .where((c) => c.isLocal && c.file != null)
+      .map((c) => c.file!)
+      .toList();
 
   // Selected ID type and controller for ID number
   String? _selectedIdType;
@@ -182,6 +209,41 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearAllControllers() {
+    dobController.clear();
+    dob2Controller.clear();
+    mobileController.clear();
+    nameController.clear();
+    emailController.clear();
+    selectedIdType = null;
+    _waitingForApproval = false;
+    _kycRejectionReason = null;
+    _kycStatus = null;
+    _certificateFiles.clear();
+    licenseFiles.clear();
+    licenseFilesUrl.clear();
+    // clearCertificateFiles();
+    _experienceCertificates.clear();
+    licenseFilesUrl.clear();
+    licenseFiles.clear();
+    _experienceCertificates.clear();
+    _certificateFiles.clear();
+
+    _backImage = null;
+    _backImageUrl = "null";
+    _frontImage = null;
+    _frontImageUrl = "null";
+    idController.clear();
+    profileImage = null;
+    _frontImage = null;
+    _backImage = null;
+    _licenseImage = null;
+    _frontImageUrl = null;
+    _backImageUrl = null;
+    _licenseImageUrl = null;
+    // removeCertificateFile(null);
+  }
+
   void clearExperienceCertificates() {
     _experienceCertificates.clear();
     notifyListeners();
@@ -193,7 +255,11 @@ class ProfileProvider extends ChangeNotifier {
   void addLicenseFile(File file) {
     if (!licenseFiles.any((f) => f.path == file.path)) {
       licenseFiles.add(file);
-      certificateFiles.add(CertificateFileModel(isPdf: file.path.toLowerCase().endsWith('.pdf'), isLocal: true,file: file,url: ""));
+      certificateFiles.add(CertificateFileModel(
+          isPdf: file.path.toLowerCase().endsWith('.pdf'),
+          isLocal: true,
+          file: file,
+          url: ""));
       notifyListeners();
     }
   }
@@ -208,37 +274,65 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  ProfileProvider(){
+  ProfileProvider() {
     getProfileData();
+    getProfile();
   }
 
   @override
   void dispose() {
     nameController.dispose();
     dobController.dispose();
+    dob2Controller.dispose();
     mobileController.dispose();
     emailController.dispose();
     super.dispose();
   }
 
-  Future<void> pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      profileImage = File(pickedFile.path);
-      imageError = null;
-      notifyListeners();
+  Future<void> pickImage(BuildContext context) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt),
+              title: Text('Camera'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library),
+              title: Text('Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source != null) {
+      final pickedFile = await ImagePicker().pickImage(source: source);
+      if (pickedFile != null) {
+        profileImage = File(pickedFile.path);
+        imageError = null;
+        notifyListeners();
+      }
     }
   }
 
   Future<void> pickDate(BuildContext context) async {
     DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime(2000, 1, 1),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      initialDate: DateTime(1990, 1, 1),
+      firstDate: DateTime(1800),
+      lastDate: DateTime(2018),
     );
     if (picked != null) {
-      dobController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      dobController.text = DateFormat('d MMMM yyyy').format(picked);
+      //  dobController.text = "${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}";
+      dob2Controller.text =
+          "${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}";
       dobError = null;
       notifyListeners();
     }
@@ -247,11 +341,16 @@ class ProfileProvider extends ChangeNotifier {
   bool validate() {
     nameError = nameController.text.isEmpty ? 'Name is required' : null;
     dobError = dobController.text.isEmpty ? 'Date of birth is required' : null;
-    mobileError = mobileController.text.isEmpty ? 'Mobile number is required' : null;
+    mobileError =
+        mobileController.text.isEmpty ? 'Mobile number is required' : null;
     emailError = emailController.text.isEmpty ? 'Email is required' : null;
     imageError = profileImage == null ? 'Profile image is required' : null;
     notifyListeners();
-    return nameError == null && dobError == null && mobileError == null && emailError == null && imageError == null;
+    return nameError == null &&
+        dobError == null &&
+        mobileError == null &&
+        emailError == null &&
+        imageError == null;
   }
 
   void clearErrors() {
@@ -262,33 +361,45 @@ class ProfileProvider extends ChangeNotifier {
     imageError = null;
     notifyListeners();
   }
-  setData(PartnerModel? partnerModel){
+
+  setData(PartnerModel? partnerModel) {
     licenseFilesUrl.clear();
     licenseFiles.clear();
     certificateFiles.clear();
     final partner = partnerModel;
-    if (partner != null){
-      idController.text = partnerModel!.panFront == null? partner.aadharNo.toString(): partner.panNo.toString();
-      _selectedIdType = partnerModel.panFront == null?   "Aadhar Card":"PAN Card";
+    if (partner != null) {
+      idController.text = partnerModel!.panFront == null
+          ? partner.aadharNo ?? ""
+          : partner.panNo ?? "";
+      _selectedIdType =
+          partnerModel.panFront == null ? "Aadhar Card" : "PAN Card";
       setFrontImageUrl(partnerModel);
       setBackImageUrl(partnerModel);
-       licenseFilesUrl = partnerModel.experienceCertificates??[];
-       for(var url in licenseFilesUrl){
-         certificateFiles.add(CertificateFileModel(isPdf: url.toLowerCase().endsWith('.pdf'), isLocal: false,file: null,url: url));
-       }
-    //  certificateFiles = partnerModel.experienceCertificates??[];
-       print("licenseFilesUrl...${licenseFilesUrl.length}");
+      licenseFilesUrl = partnerModel.experienceCertificates!;
+      print("licenseFilesUrl...$licenseFilesUrl");
+      for (var url in licenseFilesUrl) {
+        certificateFiles.add(CertificateFileModel(
+            isPdf: url.toLowerCase().endsWith('.pdf'),
+            isLocal: false,
+            file: null,
+            url: url));
+      }
+      // Set profile completion percent from backend
+      if (partnerModel.profileCompletion != null) {
+        _profileCompletionPercent =
+            (partnerModel.profileCompletion! / 100.0).clamp(0.0, 1.0);
+      }
+      print("licenseFilesUrl...${licenseFilesUrl.length}");
       print(idController.text);
       print(idController.text);
     }
   }
 
-  getProfileData() async{
+  getProfileData() async {
     _profileResponse = await PreferencesServices.getProfileData();
-    print("_profileResponse...${_profileResponse!.data!}");
-    if(_profileResponse != null){
-      if(_profileResponse!.data != null){
-        if(_profileResponse!.data!.user != null){
+    if (_profileResponse != null) {
+      if (_profileResponse!.data != null) {
+        if (_profileResponse!.data!.user != null) {
           var profile = _profileResponse!.data!.user;
           _user = profile;
           if (profile != null) {
@@ -303,23 +414,51 @@ class ProfileProvider extends ChangeNotifier {
             }
           }
         }
-        if(_profileResponse!.data!.partner != null){
+        if (_profileResponse!.data!.partner != null) {
           _partner = _profileResponse!.data!.partner;
           var partner = _partner;
           print("partner...${partner!.aadharFront}");
           if (partner != null) {
+            _kycStatus = partner.kycStatus;
+            _isOnline = partner.isOnline!;
+            _kycRejectionReason = partner.kycRejectionReason;
+            _waitingForApproval = partner.waitingForApproval;
             if (partner.dob != null && partner.dob!.isNotEmpty) {
+              DateTime? parsedDob;
               try {
-                DateTime parsedDob = DateTime.parse(partner.dob!);
-                String formattedDob = DateFormat('d MMMM yyyy').format(parsedDob);
-                dobController.text = formattedDob;
+                parsedDob = DateFormat('dd MMMM yyyy').parse(partner.dob!);
               } catch (e) {
+                // fallback: try ISO
+                parsedDob = DateTime.tryParse(partner.dob!);
+              }
+              if (parsedDob != null) {
+                // Format to: 24 December 1995
+                String formattedDob =
+                    DateFormat('d MMMM yyyy').format(parsedDob);
+                dobController.text = partner.dob.toString();
+                // Format to: 10/04/2000 (dd/MM/yyyy)
+                dob2Controller.text =
+                    DateFormat('dd/MM/yyyy').format(parsedDob);
+                print(
+                    "Formatted DOB: ${dobController.text}, dob2: ${dob2Controller.text}");
+              } else {
                 dobController.text = partner.dob!;
+                dob2Controller.text = partner.dob!;
               }
             }
-            if(partner.profile != null){
+
+            // setCategorySubcategory(_partner!);
+            if (partner.profile != null) {
+              if (_partner!.isOnline != null) {
+                _isOnline = _partner!.isOnline!;
+              }
               _userProfileImage = partner.profile;
               notifyListeners();
+            }
+            // Set profile completion percent from backend
+            if (partner.profileCompletion != null) {
+              _profileCompletionPercent =
+                  (partner.profileCompletion! / 100.0).clamp(0.0, 1.0);
             }
             // if (!profileProvider.isProfileComplete) {
             //   profileProvider.profileCompletionPercent = 1.0;
@@ -332,33 +471,40 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   // Profile details for profile details page
-  String get profileName => _user?.name ?? _profileResponse?.data?.user?.name ?? '';
-  String get profilePhone => _user?.phone != null && _user!.phone!.isNotEmpty ? _user!.phone! : (_profileResponse?.data?.user?.phone ?? '');
+  String get profileName =>
+      _user?.name ?? _profileResponse?.data?.user?.name ?? '';
+  String get profilePhone => _user?.phone != null && _user!.phone!.isNotEmpty
+      ? _user!.phone!
+      : (_profileResponse?.data?.user?.phone ?? '');
   String get profileImageUrl {
     if (_partner?.profile != null && _partner!.profile!.isNotEmpty) {
       return _partner!.profile!;
     }
-    return 'https://randomuser.me/api/portraits/women/2.jpg';
+    return '';
   }
+
   String get profileCompletionText {
     if (_partner!.profileCompletion == 100) {
       return 'Profile 100% Complete!';
-    } else if (_partner!.profileCompletion != 100 ) {
+    } else if (_partner!.profileCompletion != 100) {
       return 'Only ${_partner!.profileCompletion}% Left to Go!';
     } else {
       return 'Complete your profile to unlock more features!';
     }
   }
+
   String get profileCompletionSubtext {
-    if (profileCompletionPercent >= 1.0) {
+    final percent = profileCompletionPercent ?? 0.0;
+    if (percent >= 1.0) {
       return 'You are ready to get jobs and earn!';
     } else {
       return 'Unlock jobs, earn faster, and get certified today.';
     }
   }
-  List<String> get serviceCategories => _partner?.category ?? [];
-  String get availabilityDays =>  'Monday to Saturday';
-  String get availabilityTime =>  '9:00 AM – 7:00 PM';
+
+  List<CategoryItem> get serviceCategories => _partner?.category ?? [];
+  String get availabilityDays => 'Monday to Saturday';
+  String get availabilityTime => '9:00 AM – 7:00 PM';
   String get location {
     if (_partner != null) {
       String loc = '';
@@ -381,13 +527,20 @@ class ProfileProvider extends ChangeNotifier {
     }
     return 'N/A';
   }
+
   String get serviceRange {
     if (_partner?.city != null && _partner?.serviceAreaDistance != null) {
       return '${_partner!.city!} (up to ${_partner!.serviceAreaDistance} km)';
     }
     return 'N/A';
   }
-  bool get isProfileComplete => profileCompletionPercent >= 1.0;
+
+  bool get isProfileComplete => (profileCompletionPercent ?? 0.0) >= 1.0;
+
+  // Referral code getters
+  String get referralCode => _partner?.referralCode ?? 'N/A';
+  String get referredBy => _partner?.referredBy.toString() ?? 'N/A';
+  String? get referralPoints => _partner?.referralPoints.toString() ?? '0';
 
   // Add these getters for use in TellUsAboutView
   String get name => nameController.text;
@@ -398,7 +551,8 @@ class ProfileProvider extends ChangeNotifier {
   String? _userProfileImage;
 
   // Profile update API call
-  Future<ProfileResponse> updateProfile(BuildContext context) async {
+  Future<ProfileResponse> updateProfile(
+      BuildContext context, bool isEdit) async {
     ProfileResponse profileResponse = ProfileResponse();
     try {
       showDialog(
@@ -410,7 +564,7 @@ class ProfileProvider extends ChangeNotifier {
       final fields = {
         AllKey.name: nameController.text,
         AllKey.email: emailController.text,
-        AllKey.dob: dobController.text,
+        AllKey.dob: dob2Controller.text,
         AllKey.phone: mobileController.text,
       };
       final files = <http.MultipartFile>[];
@@ -425,16 +579,34 @@ class ProfileProvider extends ChangeNotifier {
         files: files,
       );
 
-       profileResponse = ProfileResponse.fromJson(response);
+      profileResponse = ProfileResponse.fromJson(response);
 
       Navigator.of(context).pop(); // Remove
       if (profileResponse.success == true) {
-        PreferencesServices.setPreferencesData(PreferencesServices.profilePendingScreens, profileResponse.data!.partner!.profilePendingScreens);
+        //await getProfile(context);
+        customToast(context, profileResponse.message.toString());
+        PreferencesServices.setPreferencesData(
+            PreferencesServices.profilePendingScreens,
+            profileResponse.data!.partner!.profilePendingScreens);
         await PreferencesServices.saveProfileData(profileResponse);
-        if(profileResponse.data!.partner!.profilePendingScreens == 2){
-          context.push(AppRouter.allCategory, extra: {
-            'isEdit': true,
-          },);
+        print(
+            "profileResponse.data!.partner!.profilePendingScreens...${profileResponse.data!.partner!.profilePendingScreens}");
+        if (profileResponse.data!.partner!.profilePendingScreens == 2) {
+          if (isEdit) {
+            context.push(
+              AppRouter.allCategory,
+              extra: {
+                'isEdit': true,
+              },
+            );
+          } else {
+            context.go(
+              AppRouter.allCategory,
+              extra: {
+                'isEdit': false,
+              },
+            );
+          }
         }
         return profileResponse;
       } else {
@@ -442,6 +614,7 @@ class ProfileProvider extends ChangeNotifier {
         return profileResponse;
       }
     } catch (e) {
+      Navigator.of(context).pop(); // Remove
       // Optionally set an error message here
       return profileResponse;
     }
@@ -456,32 +629,22 @@ class ProfileProvider extends ChangeNotifier {
     required BuildContext context,
     required String? selectedIdType,
     required String idNumber,
+    required bool isEdit,
   }) async {
     _isLoading = true;
     notifyListeners();
-    // Validation for front and back images
-    // if ((selectedIdType == "Aadhar Card" || selectedIdType == "PAN Card")) {
-    //   if (_frontImage == null) {
-    //     _isLoading = false;
-    //     notifyListeners();
-    //     customToast(context, "Please select the front image of your ${selectedIdType}.");
-    //     return false;
-    //   }
-    //   if (_backImage == null) {
-    //     _isLoading = false;
-    //     notifyListeners();
-    //     customToast(context, "Please select the back image of your ${selectedIdType}.");
-    //     return false;
-    //   }
-    // }
+
     try {
+      String cleanIdNumber = selectedIdType == "Aadhar Card"
+          ? idNumber.replaceAll(' ', '')
+          : idNumber;
       progressLoadingDialog(context, true);
       Map<String, String> fields = {};
       List<http.MultipartFile> files = [];
       // Flags and fields based on selected ID type
       if (selectedIdType == "Aadhar Card") {
         fields['isAadharCard'] = 'true';
-        fields['aadharNo'] = idNumber;
+        fields['aadharNo'] = cleanIdNumber;
         if (_frontImage != null) {
           final mimeType = lookupMimeType(_frontImage!.path);
           files.add(await http.MultipartFile.fromPath(
@@ -522,15 +685,18 @@ class ProfileProvider extends ChangeNotifier {
       // Experience certificates (multiple files, can be images or pdf)
       print("_experienceCertificates455..${licenseFiles.length}");
 
-       for (int i = 0; i < licenseFiles.length; i++) {
-           final mimeType = lookupMimeType(licenseFiles[i].path);
-           files.add(await http.MultipartFile.fromPath(
-             'experienceCertificates',
-             licenseFiles[i].path,
-             contentType: mimeType != null ? MediaType.parse(mimeType) : null,
-           ));
-        // }
-       }
+      if (licenseFiles.isNotEmpty) {
+        for (int i = 0; i < licenseFiles.length; i++) {
+          final mimeType = lookupMimeType(licenseFiles[i].path);
+          files.add(await http.MultipartFile.fromPath(
+            'experienceCertificates',
+            licenseFiles[i].path,
+            contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+          ));
+          // }
+        }
+      }
+
       // Call API
       final response = await ApiService().postMultipart(
         ApiPaths.uploadPartnerDocuments,
@@ -538,39 +704,45 @@ class ProfileProvider extends ChangeNotifier {
         files: files,
       );
       progressLoadingDialog(context, false);
-     // Navigator.of(context).pop(); // Remove
+      // Navigator.of(context).pop(); // Remove
       _isLoading = false;
       notifyListeners();
 
-
-
       if (response['success'] == true) {
         _profileResponse = ProfileResponse.fromJson(response);
+        // await getProfile(context);
+        print(
+            "_profileResponse...${_profileResponse!.data!.partner!.profileCompletion}");
         print("response...$response");
-        PreferencesServices.setPreferencesData(PreferencesServices.profilePendingScreens, profileResponse!.data!.partner!.profilePendingScreens);
+        PreferencesServices.setPreferencesData(
+            PreferencesServices.profilePendingScreens,
+            profileResponse!.data!.partner!.profilePendingScreens);
         await PreferencesServices.saveProfileData(_profileResponse!);
         notifyListeners();
-       // if(_profileResponse!.data!.partner!.profilePendingScreens == 2){
-          // context.go(AppRouter.allCategory);
-          showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => CommonSuccessDialog(
-                      image:SvgPicture.asset(MyAssetsPaths.certified,height: 132,width: 132,),
-                      title: "You're Now a Certified Partner!",
-                      subtitle: "You can now access more job requests and earn trust faster.",
-                      buttonText: "Go to Dashboard",
-                      onButtonTap: () {
-                        Navigator.of(context).pop();
-                        context.go(AppRouter.dashboard);
-                      },
-                    ),
-                  );
-       // }
+        if (isEdit) {
+          customToast(context, response['message'].toString());
+        } else {
+          context.push(AppRouter.subscriptionPlanView);
+          // showDialog(
+          //   context: context,
+          //   barrierDismissible: false,
+          //   builder: (context) => CommonSuccessDialog(
+          //     image:SvgPicture.asset(MyAssetsPaths.certified,height: 132,width: 132,),
+          //     title: "You're Now a Certified Partner!",
+          //     subtitle: "You can now access more job requests and earn trust faster.",
+          //     buttonText: "Go to Dashboard",
+          //     onButtonTap: () {
+          //       Navigator.of(context).pop();
+          //       context.go(AppRouter.dashboard);
+          //     },
+          //   ),
+          // );
+        }
+
+        // }
         return true;
       } else {
-
-        customToast(context,response['message']);
+        customToast(context, response['message']);
         return false;
       }
     } catch (e) {
@@ -583,28 +755,31 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   // Validation method
-  bool validateDocumentUpload( BuildContext context) {
+  bool validateDocumentUpload(BuildContext context, bool isEdit) {
     if (selectedIdType == null || selectedIdType!.isEmpty) {
       customToast(context, "Please select ID type.");
       return false;
-    }
-    else if (idController.text.trim().isEmpty) {
+    } else if (idController.text.trim().isEmpty) {
       customToast(context, "Please enter ID number.");
       return false;
     }
     //if (profileProvider.selectedIdType == "Aadhar Card" || profileProvider.selectedIdType == "PAN Card") {
-    else  if (frontImage == null) {
-      customToast(context, "Please select the front image of your ${selectedIdType}.");
+    else if (frontImage == null) {
+      customToast(
+          context, "Please select the front image of your ${selectedIdType}.");
       return false;
-    }
-    else if (backImage == null) {
-      customToast(context, "Please select the back image of your ${selectedIdType}.");
+    } else if (backImage == null) {
+      customToast(
+          context, "Please select the back image of your ${selectedIdType}.");
       return false;
+    } else if (!isEdit) {
+      if (licenseFiles.isEmpty || licenseFiles == null) {
+        customToast(context,
+            "Please select the experienceCertificates image of your ${selectedIdType}.");
+        return false;
+      }
     }
-    else if (experienceCertificates.isEmpty && experienceCertificates == null) {
-      customToast(context, "Please select the experienceCertificates image of your ${selectedIdType}.");
-      return false;
-    }
+
     notifyListeners();
     // }
     return true;
@@ -644,19 +819,239 @@ class ProfileProvider extends ChangeNotifier {
 
   void unfocusf(context) {
     focusNode.unfocus();
-   // FocusScope.of(context).unfocus();
+    // FocusScope.of(context).unfocus();
     notifyListeners();
   }
 
- setFrontImageUrl(PartnerModel partner) {
-    _frontImageUrl = partner.panFront != null ?partner.panFront.toString() :partner.aadharFront != null ?partner.aadharFront.toString()  : "null";
- // notifyListeners();
- //  return _frontImageUrl;
+  setLoader(bool load) {
+    print("load...$load");
+    _isLoader = load;
+    notifyListeners();
   }
 
-setBackImageUrl(PartnerModel partner) {
-    _backImageUrl = partner.panBack != null ?partner.panBack.toString() :partner.aadharBack != null ?partner.aadharBack.toString()  : "null";
+  Future<void> getProfile() async {
+    try {
+      final response = await ApiService().get(ApiPaths.getProfile);
+      setLoader(false);
+      if (response['success'] == true) {
+        _profileResponse = ProfileResponse.fromJson(response);
+        await PreferencesServices.saveProfileData(_profileResponse!);
+        getProfileData();
+        notifyListeners();
+      }
+    } catch (e) {
+      // customToast(context, e.toString());
+    }
+  }
+
+  setFrontImageUrl(PartnerModel partner) {
+    _frontImageUrl = partner.panFront != null
+        ? partner.panFront.toString()
+        : partner.aadharFront != null
+            ? partner.aadharFront.toString()
+            : "null";
+    // notifyListeners();
+    //  return _frontImageUrl;
+  }
+
+  setBackImageUrl(PartnerModel partner) {
+    _backImageUrl = partner.panBack != null
+        ? partner.panBack.toString()
+        : partner.aadharBack != null
+            ? partner.aadharBack.toString()
+            : "null";
     // notifyListeners();
     // return _backImageUrl;
   }
-} 
+
+  checkValue(
+    PartnerModel? partnerModel,
+  ) {
+    print("_selectedIdType...$_selectedIdType");
+    licenseFilesUrl.clear();
+    licenseFiles.clear();
+    // certificateFiles.clear();
+    final partner = partnerModel;
+    if (partner != null) {
+      if (_selectedIdType == "Aadhar Card") {
+        idController.text =
+            partner.aadharNo != null ? partner.aadharNo ?? "" : "";
+        _selectedIdType = "Aadhar Card";
+        _frontImageUrl = partner.aadharFront != null
+            ? partner.aadharFront.toString()
+            : "null";
+        _backImageUrl =
+            partner.aadharBack != null ? partner.aadharBack.toString() : "null";
+        // licenseFilesUrl = partner.experienceCertificates!;
+      } else {
+        idController.text = partner.panNo != null ? partner.panNo ?? "" : "";
+        _selectedIdType = "PAN Card";
+        _frontImageUrl =
+            partner.panFront != null ? partner.panFront.toString() : "null";
+        _backImageUrl =
+            partner.panBack != null ? partner.panBack.toString() : "null";
+        // licenseFilesUrl = partner.experienceCertificates!;
+      }
+      // idController.text = partnerModel!.panFront == null? partner.aadharNo??"": partner.panNo??"";
+      // _selectedIdType = partnerModel.panFront == null?   "Aadhar Card":"PAN Card";
+      // setFrontImageUrl(partnerModel);
+      // setBackImageUrl(partnerModel);
+      licenseFilesUrl = partner.experienceCertificates!;
+      print("licenseFilesUrl...$licenseFilesUrl");
+      for (var url in licenseFilesUrl) {
+        certificateFiles.add(CertificateFileModel(
+            isPdf: url.toLowerCase().endsWith('.pdf'),
+            isLocal: false,
+            file: null,
+            url: url));
+      }
+      // Set profile completion percent from backend
+      if (partner.profileCompletion != null) {
+        _profileCompletionPercent =
+            (partner.profileCompletion! / 100.0).clamp(0.0, 1.0);
+      }
+      print("licenseFilesUrl...${licenseFilesUrl.length}");
+      print(idController.text);
+      print(idController.text);
+    }
+  }
+
+  void onChangeDropDown(String value, PartnerModel? partner) {
+    print("tett" + value);
+
+    selectedIdType = value;
+    idController.clear();
+    removeBackImage();
+    removeFrontImage();
+    // certificateFiles.clear();
+    if (partner!.id != null) {
+      print(partner.kycStatus);
+      checkValue(partner);
+    }
+
+    notifyListeners();
+  }
+
+  // Submit for Approval API call
+  Future<bool> submitForApproval(BuildContext context) async {
+    try {
+      progressLoadingDialog(context, true);
+
+      // Call the API (POST, no body needed)
+      final response = await ApiService().get(
+        ApiPaths.waitingForApproval,
+      );
+      progressLoadingDialog(context, false);
+      if (response['success'] == true) {
+        _profileResponse = ProfileResponse.fromJson(response);
+        // Save profilePendingScreens and profile data as everywhere else
+        PreferencesServices.setPreferencesData(
+          PreferencesServices.profilePendingScreens,
+          _profileResponse!.data!.partner!.profilePendingScreens,
+        );
+        await PreferencesServices.saveProfileData(_profileResponse!);
+        // Update local state
+        _partner = _profileResponse!.data!.partner;
+        _waitingForApproval = _partner?.waitingForApproval;
+        _kycStatus = _partner?.kycStatus;
+        notifyListeners();
+        customToast(context, response['message'] ?? 'Submitted for approval!');
+        return true;
+      } else {
+        customToast(
+            context, response['message'] ?? 'Failed to submit for approval.');
+        return false;
+      }
+    } catch (e) {
+      progressLoadingDialog(context, false);
+      customToast(context, e.toString());
+      return false;
+    }
+  }
+
+  // Online status for profile (for dropdown)
+  bool _isOnline = false;
+  bool get isOnline => _isOnline;
+
+  // Referral History
+  ReferralHistoryResponse? _referralHistoryResponse;
+  ReferralHistoryResponse? get referralHistoryResponse =>
+      _referralHistoryResponse;
+  bool _isReferralHistoryLoading = false;
+  bool get isReferralHistoryLoading => _isReferralHistoryLoading;
+  void setOnlineStatus(bool value, BuildContext context) {
+    print("_isOnline.e4..${_isOnline}");
+    _isOnline = !value;
+    print("_isOnline...${_isOnline}");
+    notifyListeners();
+  }
+
+  // Fetch Referral History
+  Future<ReferralHistoryResponse?> getReferralHistory(
+      BuildContext context) async {
+    try {
+      _isReferralHistoryLoading = true;
+      notifyListeners();
+
+      final response = await ApiService().get(ApiPaths.getReferralHistory);
+
+      if (response['success'] == true) {
+        _referralHistoryResponse = ReferralHistoryResponse.fromJson(response);
+        notifyListeners();
+        return _referralHistoryResponse;
+      } else {
+        customToast(
+            context, response['message'] ?? 'Failed to fetch referral history');
+        return null;
+      }
+    } catch (e) {
+      customToast(context, e.toString());
+      return null;
+    } finally {
+      _isReferralHistoryLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Update online/offline status and call API with current location
+  Future<void> setOnlineStatusWithApi(bool value, BuildContext context) async {
+    _isOnline = value;
+    notifyListeners();
+    try {
+      // Get current location
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+
+      progressLoadingDialog(context, true);
+      final payload = {
+        "isOnline": value,
+        "latitude": position.latitude.toString(),
+        "longitude": position.longitude.toString(),
+      };
+
+      final response = await ApiService()
+          .post(ApiPaths.updateTodayWorkingStatus, body: payload);
+      progressLoadingDialog(context, false);
+      if (response != null && response['success'] == true) {
+        _profileResponse = ProfileResponse.fromJson(response);
+        // Save profilePendingScreens and profile data as everywhere else
+        PreferencesServices.setPreferencesData(
+          PreferencesServices.profilePendingScreens,
+          _profileResponse!.data!.partner!.profilePendingScreens,
+        );
+        await PreferencesServices.saveProfileData(_profileResponse!);
+        // Update local state
+        _partner = _profileResponse!.data!.partner;
+        _waitingForApproval = _partner?.waitingForApproval;
+        _kycStatus = _partner?.kycStatus;
+        notifyListeners();
+      }
+      customToast(context, response['message'].toString());
+      print("message..${response['message'].toString()}");
+    } catch (e) {
+      progressLoadingDialog(context, false);
+      // Optionally show error
+      print("Error updating online status: $e");
+    }
+  }
+}
